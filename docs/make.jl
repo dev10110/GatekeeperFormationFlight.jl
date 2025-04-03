@@ -1,0 +1,23 @@
+using GatekeeperFormationFlight
+using Documenter
+
+DocMeta.setdocmeta!(GatekeeperFormationFlight, :DocTestSetup, :(using GatekeeperFormationFlight); recursive=true)
+
+makedocs(;
+    modules=[GatekeeperFormationFlight],
+    authors="Devansh Agrawal <devansh@umich.edu> and contributors",
+    sitename="GatekeeperFormationFlight.jl",
+    format=Documenter.HTML(;
+        canonical="https://dev10110.github.io/GatekeeperFormationFlight.jl",
+        edit_link="main",
+        assets=String[],
+    ),
+    pages=[
+        "Home" => "index.md",
+    ],
+)
+
+deploydocs(;
+    repo="github.com/dev10110/GatekeeperFormationFlight.jl",
+    devbranch="main",
+)
