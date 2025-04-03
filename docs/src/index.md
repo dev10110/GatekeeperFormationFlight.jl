@@ -9,6 +9,3 @@ Documentation for [GatekeeperFormationFlight](https://github.com/dev10110/Gateke
 ```@index
 ```
 
-```@autodocs
-Modules = [GatekeeperFormationFlight]
-```

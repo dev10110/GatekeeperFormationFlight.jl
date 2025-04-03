@@ -14,7 +14,10 @@ makedocs(;
     ),
     pages=[
         "Home" => "index.md",
-    ],
+        "Robots and Wezes" => "robots_and_wezes.md",
+        "RRT*" => "rrt_star.md",
+        "API" => "api.md"
+    ]
 )
 
 deploydocs(;
