@@ -39,11 +39,11 @@ struct Cardioid{F} <: AbstractWez
     Rmin::F
     Rmax::F
 end
-Cardioid(x::F, y::F) where {F} = Cardioid(x, y, zero(F), convert(F, 0.15) )
+Cardioid(x::F, y::F) where {F} = Cardioid(x, y, zero(F), convert(F, 0.15))
 
 
 function _cardioid(θ, λ, ξ, Rmin, Rmax)
-    ρ = (( cos(ξ)+1) / 2 * (Rmax - Rmin) + Rmin) * (1/2) * (1 + sin( π/2 - λ + θ))
+    ρ = ((cos(ξ) + 1) / 2 * (Rmax - Rmin) + Rmin) * (1 / 2) * (1 + sin(π / 2 - λ + θ))
     return ρ
 end
 
@@ -62,13 +62,13 @@ end
 
 # positive => safe
 function collision_distance(c::Cardioid, r::Robot)
-    
+
     # get the current distance
     d = sqrt((r.x - c.x)^2 + (r.y - c.y)^2)
-    
+
     # determine the appropriate θ (only possible to intersect if θ = λ)
     θ = atan(r.y - c.y, r.x - c.x)
-    
+
     # get the radius of the cardioid at this angle
     ρ = wez_polar(θ, c, r)
 
@@ -77,7 +77,7 @@ end
 
 function is_colliding(c::Cardioid, r::Robot)
     d = sqrt((r.x - c.x)^2 + (r.y - c.y)^2)
-    
+
     if d > c.Rmax
         return false
     else
@@ -101,7 +101,7 @@ struct CircularWez{F} <: AbstractWez
     R::F
 end
 
-CircularWez(x::F, y::F) where {F} = CircularWez(x, y, convert(F, 0.15) )
+CircularWez(x::F, y::F) where {F} = CircularWez(x, y, convert(F, 0.15))
 CircularWez(c::Cardioid) = CircularWez(c.x, c.y, c.Rmax)
 
 
@@ -119,10 +119,10 @@ end
 
 # positive => safe
 function collision_distance(c::CircularWez, r::Robot)
-    
+
     # get the current distance
     d = sqrt((r.x - c.x)^2 + (r.y - c.y)^2)
-    
+
     return d - c.R
 end
 
@@ -146,68 +146,71 @@ struct Cbez{F} <: AbstractWez
     R::F
     t::F
 end
-        
-Cbez(x, y, ψ) = Cbez(x, y, ψ,
-        0.9,  # μ
-        0.25, # ā
-        1.0,  # v
-        π/2,  # R
-        π/2   # t
+
+Cbez(x, y, ψ) = Cbez(
+    x,
+    y,
+    ψ,
+    0.9,  # μ
+    0.25, # ā
+    1.0,  # v
+    π / 2,  # R
+    π / 2,   # t
 )
 
 function wez_coordinates(λ, cbez::Cbez, robot::Robot)
 
     # extract vars
     ψT = robot.ψ
-    
+
     ψP = cbez.ψ
     μ = cbez.μ
     R = cbez.R
     v = cbez.v
     t = cbez.t
-    
+
     # find the p'
     p = @SVector [cbez.x, cbez.y]
-    p_prime = p + (@SVector [-μ*R*cos(ψT), -μ*R*sin(ψT)])
-    
+    p_prime = p + (@SVector [-μ * R * cos(ψT), -μ * R * sin(ψT)])
+
     # find the d
     # note, sinc(x) = sin(πx)/(πx) in julia
-    d_prime = (v*t) * sinc( wrapToPi(λ - ψP) / π)
-    
+    d_prime = (v * t) * sinc(wrapToPi(λ - ψP) / π)
+
     # return both the x and y coordinates
     T = @SVector [d_prime * cos(λ), d_prime * sin(λ)]
-    
+
     # this is the point on the surface
-    s =  p_prime + T
+    s = p_prime + T
 
     return s
 end
 
 
 function collision_distance(cbez::Cbez, robot::Robot)
-    
+
     # extract vars
     ψT = robot.ψ
-    
+
     ψP = cbez.ψ
     μ = cbez.μ
     R = cbez.R
     v = cbez.v
     t = cbez.t
-    
+
     # find the p'
     p = @SVector [cbez.x, cbez.y]
-    p_prime = p + (@SVector [-μ*R*cos(ψT), -μ*R*sin(ψT)])
+    p_prime = p + (@SVector [-μ * R * cos(ψT), -μ * R * sin(ψT)])
 
     # find the λ' (the heading to the target from p_prime)
     λ_prime = atan(robot.y - p_prime[2], robot.x - p_prime[1])
 
     # find the d
     # note, sinc(x) = sin(πx)/(πx) in julia
-    d_prime = (v*t) * sinc( wrapToPi(λ_prime - ψP) / π)
+    d_prime = (v * t) * sinc(wrapToPi(λ_prime - ψP) / π)
 
     # compute the actual distance to p_prime
-    d = norm( (@SVector [robot.x, robot.y]) - p_prime)
+    d = norm((@SVector [robot.x, robot.y]) - p_prime)
 
     return d - d_prime
 end
@@ -217,15 +220,15 @@ end
 ### Collision Checking ######################################
 #############################################################
 
-function collision_distance(ws::VW, r::Robot) where {W <: AbstractWez, VW <: AbstractVector{W}}
+function collision_distance(ws::VW, r::Robot) where {W<:AbstractWez,VW<:AbstractVector{W}}
     return minimum(collision_distance(w, r) for w in ws)
 end
 
-function is_colliding(c::W, r::Robot) where {W <: AbstractWez}
+function is_colliding(c::W, r::Robot) where {W<:AbstractWez}
     return collision_distance(c, r) <= 0
 end
 
-function is_colliding(vc::VW, r::Robot) where {W <: AbstractWez, VW <: AbstractVector{W}}
+function is_colliding(vc::VW, r::Robot) where {W<:AbstractWez,VW<:AbstractVector{W}}
     for c in vc
         if is_colliding(c, r)
             return true
@@ -236,12 +239,12 @@ end
 
 
 
-function collision_distance(c::W, x::SVector{3, F}) where {W <: AbstractWez, F}
+function collision_distance(c::W, x::SVector{3,F}) where {W<:AbstractWez,F}
     r = Robot(x...)
     return collision_distance(c, r)
 end
 
-function is_colliding(c::W, x::SVector{3, F}) where {W <: AbstractWez, F}
+function is_colliding(c::W, x::SVector{3,F}) where {W<:AbstractWez,F}
     r = Robot(x...)
     return is_colliding(c, r)
 end
@@ -252,11 +255,11 @@ end
 ### Plotting ################################################
 #############################################################
 
-@recipe function plot_wez(c::W) where {W <: AbstractWez}
+@recipe function plot_wez(c::W) where {W<:AbstractWez}
 
     x = [c.x]
     y = [c.y]
-    
+
     # plot the origin marker
     @series begin
         seriestype := :scatter
@@ -284,7 +287,7 @@ end
         aspect_ratio --> :equal
         [c.x], [c.y]
     end
-    
+
     # plot the arrow
     @series begin
         seriestype := :path
@@ -298,10 +301,10 @@ end
 end
 
 
-@recipe function plot_wez(c::W, r::Robot) where {W <: AbstractWez}
+@recipe function plot_wez(c::W, r::Robot) where {W<:AbstractWez}
 
     # compute the wez boundary
-    pts = [wez_coordinates(t, c, r) for t in range(0, 2π, length=100)]
+    pts = [wez_coordinates(t, c, r) for t in range(0, 2π, length = 100)]
     x = [x[1] for x in pts]
     y = [x[2] for x in pts]
 
@@ -320,5 +323,3 @@ end
     end
 
 end
-
-

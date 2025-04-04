@@ -35,13 +35,13 @@ apply input bounds to a v, ω.
 Extracted as a function to make sure input bounds get applied everywhere uniformly.
 """
 function apply_input_bounds(v, ω; v_min = 0.8, v_max = 1.0, R_min = 0.1)
-    
+
     # turning radius is R = 0.1 at v = 1.0, therefore, ω_max = v/r = 10.0
-    ω_max = v_max / R_min 
-    
-    v = clamp(v, v_min, v_max)    
+    ω_max = v_max / R_min
+
+    v = clamp(v, v_min, v_max)
     ω = clamp(ω, -ω_max, ω_max)
-    
+
     return v, ω
 end
 

@@ -24,30 +24,31 @@ if the `title` argument is set, it will use that as the plot title. else, the ti
 
 Both `wezes` and `robots` can either be a single `AbstractWez` or `Robot`, or it could be a vector of wezes or a vector of robots. 
 """
-function plot_scenario!(wezes::Vector{W}, robots::Vector{R}; draw_bbox = true, title=nothing, kwargs...) where {W<:AbstractWez, R}
-    plot!(aspect_ratio=:equal)
+function plot_scenario!(
+    wezes::Vector{W},
+    robots::Vector{R};
+    draw_bbox = true,
+    title = nothing,
+    kwargs...,
+) where {W<:AbstractWez,R}
+    plot!(aspect_ratio = :equal)
 
 
     if draw_bbox
         # plot the bounding box
-        plot!(
-            [0, 1, 1, 0, 0],
-            [0, 0, 1, 1, 0],
-            label=false,
-            color=:black
-        )
-        plot!(xlims=(-0.4, 1.4), ylims=(-0.1, 1.1))
+        plot!([0, 1, 1, 0, 0], [0, 0, 1, 1, 0], label = false, color = :black)
+        plot!(xlims = (-0.4, 1.4), ylims = (-0.1, 1.1))
     end
 
     # plot the wezes
     for wez in wezes, robot in robots
-        plot!(wez, robot; color=:gray)
+        plot!(wez, robot; color = :gray)
     end
 
     # plot the robot
     for robot in robots
         color = is_colliding(wezes, robot) ? :red : :green
-        plot!(robot; color=color)
+        plot!(robot; color = color)
     end
 
     if isnothing(title)
@@ -60,12 +61,12 @@ function plot_scenario!(wezes::Vector{W}, robots::Vector{R}; draw_bbox = true, t
         plot!(title = "Min Wez Distance: $(round(mind; digits=2))")
 
         if mind <= 0
-            plot!(titlefont=font(:red))
+            plot!(titlefont = font(:red))
         else
-            plot!(titlefont=font(:black))
+            plot!(titlefont = font(:black))
         end
     else
-        plot!(title=title)
+        plot!(title = title)
     end
 
     plot!()
@@ -76,7 +77,7 @@ end
 @recipe function plot_dubins_path(path::DubinsPath)
 
     N = 50
-    errcode, samples = dubins_path_sample_many(path, dubins_path_length(path) / N )
+    errcode, samples = dubins_path_sample_many(path, dubins_path_length(path) / N)
     @assert errcode == Dubins.EDUBOK
 
     # push the final state too

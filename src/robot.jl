@@ -13,7 +13,7 @@ struct Robot{F}
     ψ::F
 end
 
-function Robot(v::VF) where {F, VF <: AbstractVector{F}}
+function Robot(v::VF) where {F,VF<:AbstractVector{F}}
     @assert length(v) == 3
     return Robot(v...)
 end
@@ -24,7 +24,7 @@ end
 returns a SVector{3, F} containing [x, y, ψ]
 """
 function StaticArrays.SVector(r::Robot{F}) where {F}
-    return SVector{3, F}(r.x, r.y, r.ψ)
+    return SVector{3,F}(r.x, r.y, r.ψ)
 end
 
 

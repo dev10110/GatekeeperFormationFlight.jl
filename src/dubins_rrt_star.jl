@@ -14,7 +14,7 @@ import Dubins
     
 get the distance between two states, if connected by a dubins path
 """
-function dubins_distance(q1, q2, turning_radius=0.1)
+function dubins_distance(q1, q2, turning_radius = 0.1)
 
     e, p = Dubins.dubins_shortest_path(q1, q2, turning_radius)
     @assert e == Dubins.EDUBOK
@@ -48,16 +48,16 @@ wezes = [Cardioid(rand(), rand()) for i=1:10]
 rrt_problem = DubinsRRTProblem(domain, turning_radius, wezes)
 ```
 """
-struct DubinsRRTProblem{F, W} <: RRTStar.AbstractProblem{SVector{3, F}}
-    domain::Tuple{SVector{3, F}, SVector{3, F}}
+struct DubinsRRTProblem{F,W} <: RRTStar.AbstractProblem{SVector{3,F}}
+    domain::Tuple{SVector{3,F},SVector{3,F}}
     turning_radius::F
     wezes::Vector{W}
 end
 
 # create a default domain, with the wezes as an argument
-function DubinsRRTProblem(wezes::VW) where {W <: AbstractWez, VW <: AbstractVector{W}}
-    min_domain = SVector{3}(0.0, 0.0, -1.0*π)
-    max_domain = SVector{3}(1.0, 1.0, 1.0*π)
+function DubinsRRTProblem(wezes::VW) where {W<:AbstractWez,VW<:AbstractVector{W}}
+    min_domain = SVector{3}(0.0, 0.0, -1.0 * π)
+    max_domain = SVector{3}(1.0, 1.0, 1.0 * π)
     turning_radius = 0.1
     return DubinsRRTProblem((min_domain, max_domain), turning_radius, wezes)
 end
@@ -126,16 +126,16 @@ function RRTStar.steer(problem::DubinsRRTProblem, x_nearest, x_rand; max_travel_
     errcode, path = Dubins.dubins_shortest_path(x_nearest, x_rand, problem.turning_radius)
     @assert errcode == Dubins.EDUBOK
 
-    L = Dubins.dubins_path_length(path) 
+    L = Dubins.dubins_path_length(path)
 
     # get the node 20% of the waythrough
     s = min(L, max_travel_dist)
 
     errcode, x_new = Dubins.dubins_path_sample(path, s)
     @assert errcode == Dubins.EDUBOK
-    
+
     return SVector{3}(x_new)
-    
+
 end
 
 """
@@ -143,7 +143,12 @@ end
 
 checks if a path from `x_nearest` to `x_new` is collision free with respect to the wezes in `problem.wezes`.
 """
-function RRTStar.collision_free(problem::DubinsRRTProblem, x_nearest, x_new; step_size=0.001)
+function RRTStar.collision_free(
+    problem::DubinsRRTProblem,
+    x_nearest,
+    x_new;
+    step_size = 0.001,
+)
 
     # create the path
     errcode, path = Dubins.dubins_shortest_path(x_nearest, x_new, problem.turning_radius)
@@ -152,11 +157,11 @@ function RRTStar.collision_free(problem::DubinsRRTProblem, x_nearest, x_new; ste
     L = Dubins.dubins_path_length(path)
 
     # sample path at a fine resolution
-    xs = range(0.0, L, step=step_size)
-     
+    xs = range(0.0, L, step = step_size)
+
     for x in xs
         errcode, q = Dubins.dubins_path_sample(path, x)
-#     errcode, samples = Dubins.dubins_path_sample_many(path, resolution)
+        #     errcode, samples = Dubins.dubins_path_sample_many(path, resolution)
         @assert errcode == Dubins.EDUBOK errcode
 
         # check each point for collision 
