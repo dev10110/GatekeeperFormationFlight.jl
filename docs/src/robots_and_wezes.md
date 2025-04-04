@@ -59,7 +59,7 @@ follower_robots = [
 robots = vcat(leader_robot, follower_robots...)
 
 # plot everything
-plot_scenario(wezes, robots)
+plot(wezes, robots)
 ```
 
 

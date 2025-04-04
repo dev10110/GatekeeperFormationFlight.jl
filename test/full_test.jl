@@ -1,0 +1,76 @@
+using GatekeeperFormationFlight
+# using Plots
+using LinearAlgebra, StaticArrays, Random
+# using Dubins
+using Test
+
+# use the dubins in GatekeeperFormationFlight
+Dubins = GatekeeperFormationFlight.Dubins
+
+@testset "GatekeeperFormationFlight.jl" begin
+
+    # create an environment
+    function create_random_scenario(N_wezes=24)
+        wezes_1 = [Cardioid(rand(), rand()) for i=1:N_wezes/2]
+        wezes_2 = [Cardioid(0.5 + 0.2 * randn(), 0.5 + 0.2 * randn()) for i=1:N_wezes/2]
+        wezes = vcat(wezes_1, wezes_2)
+        return wezes
+    end
+    Random.seed!(27182818)
+    wezes = create_random_scenario(24)
+
+    # create a set of robots
+    leader_robot = Robot(-0.25,0.,0.)
+    follower_robots = [
+        Robot(-0.3, -0.05, 0.0), 
+        Robot(-0.3, 0.05, 0.0), 
+        ]
+    robots = vcat(leader_robot, follower_robots...)
+
+    # plan a path for the leader using RRT*
+    domain = (
+        (@SVector [0, 0, -1.0*π]),
+        (@SVector [1, 1,  1.0*π])
+    )
+    turning_radius = 0.1
+    rrt_problem = DubinsRRTProblem(domain, turning_radius, wezes)
+
+    # start the tree with the root node
+    nodes = [Node(SVector(0,0,0.)), ]
+
+    # add 1000 nodes to the tree
+    nodes = rrt_star(rrt_problem, nodes, 1000)
+
+    # see if there is a path 
+    success_code, waypoints = get_best_path(rrt_problem, nodes, @SVector [1.0, 1.0, 0])
+
+    # while we havent found a path, add some nodes and check if we have a feasible path
+    iter_counter = 0
+    while !success_code  && iter_counter < 10
+        nodes = rrt_star(rrt_problem, nodes, 500)
+        success_code, waypoints = get_best_path(rrt_problem, nodes, [1.0, 1.0, 0])
+        iter_counter += 1
+    end
+            
+    @assert success_code
+
+    # prepend and append the start and the goal
+    waypoints = [
+        SVector(leader_robot), 
+        waypoints..., 
+        SVector(1.25,1,0.)
+    ]
+
+    path = DubinsPath[]
+    # add all the waypoints to the path
+    for i=2:length(waypoints)
+        e, p = dubins_shortest_path(waypoints[i-1], waypoints[i], rrt_problem.turning_radius)
+        @assert e == Dubins.EDUBOK
+        push!(path, p)
+    end
+
+    # plot_scenario(wezes, robots)
+    # plot!(path, color=:black, label=false, linewidth=2)
+    # title!("best path")
+    # plot!()
+end

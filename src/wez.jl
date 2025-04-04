@@ -4,14 +4,16 @@ using RecipesBase
 abstract type AbstractWez end
 
 """
-    is_colliding(wez::AbstractWez, robot::Robot)
+    is_colliding(wez::AbstractWez, robot::Robot, tol)
+    is_colliding(wezes::Vector{AbstractWez}, robot::Robot, tol)
 
-returns true if the robot is within a wez
+returns `collision_distance(wez, robot) <= tol`
 """
 function is_colliding end
 
 """
     collision_distance(wez::AbstractWez, robot::Robot)
+    collision_distance(wezez::Vector{AbstractWez}, robot::Robot)
 
 returns the distance to collision for this robot to the wez. Positive if safe. If the robot is within the wez, it will return a negative number. 
 """
@@ -23,6 +25,15 @@ function collision_distance end
 returns the (x, y) coordinates of the wez boundary relative to a robot, parameterized by the polar angle θ ∈ [0, 2π]. 
 """
 function wez_coordinates end
+
+
+"""
+   minimum_distance(c::AbstractWez p::SVector{2})
+
+utility function to get the smallest distance to a wez from the current location, indepednent of robot orientations.
+Currently only implemented for Cardioid and CircularWez.
+"""
+function minimum_distance end
 
 #############################################################
 ### Cardioids ###############################################
@@ -75,14 +86,19 @@ function collision_distance(c::Cardioid, r::Robot)
     return d - ρ
 end
 
-function is_colliding(c::Cardioid, r::Robot)
+function is_colliding(c::Cardioid, r::Robot, tol = 0)
     d = sqrt((r.x - c.x)^2 + (r.y - c.y)^2)
 
-    if d > c.Rmax
+    if d > c.Rmax + tol
         return false
     else
-        return collision_distance(c, r) <= 0
+        return collision_distance(c, r) <= tol
     end
+end
+
+
+function minimum_distance(c::Cardioid, p::SVector{2})
+    return norm((@SVector [c.x - p[1], c.y - p[2]])) - c.Rmax
 end
 
 
@@ -100,10 +116,7 @@ struct CircularWez{F} <: AbstractWez
     y::F
     R::F
 end
-
 CircularWez(x::F, y::F) where {F} = CircularWez(x, y, convert(F, 0.15))
-CircularWez(c::Cardioid) = CircularWez(c.x, c.y, c.Rmax)
-
 
 function wez_polar(θ, c::CircularWez, r::Robot)
     return c.R
@@ -116,7 +129,6 @@ function wez_coordinates(θ, c::CircularWez, r::Robot)
     return @SVector [x, y]
 end
 
-
 # positive => safe
 function collision_distance(c::CircularWez, r::Robot)
 
@@ -125,6 +137,11 @@ function collision_distance(c::CircularWez, r::Robot)
 
     return d - c.R
 end
+
+function minimum_distance(c::CircularWez, p::SVector{2})
+    return collision_distance(c, r)
+end
+
 
 #############################################################
 ### CBEZ ####################################################
@@ -220,35 +237,36 @@ end
 ### Collision Checking ######################################
 #############################################################
 
-function collision_distance(ws::VW, r::Robot) where {W<:AbstractWez,VW<:AbstractVector{W}}
-    return minimum(collision_distance(w, r) for w in ws)
+function is_colliding(c::W, r::Robot, tol = 0) where {W<:AbstractWez}
+    return collision_distance(c, r) <= tol
 end
 
-function is_colliding(c::W, r::Robot) where {W<:AbstractWez}
-    return collision_distance(c, r) <= 0
+function is_colliding(c::W, x::SVector{3,F}, tol = 0) where {W<:AbstractWez,F}
+    r = Robot(x)
+    return is_colliding(c, r, tol)
 end
 
-function is_colliding(vc::VW, r::Robot) where {W<:AbstractWez,VW<:AbstractVector{W}}
+function is_colliding(
+    vc::VW,
+    r::Robot,
+    tol = 0,
+) where {W<:AbstractWez,VW<:AbstractVector{W}}
     for c in vc
-        if is_colliding(c, r)
+        if is_colliding(c, r, tol)
             return true
         end
     end
     return false
 end
 
-
+function collision_distance(ws::VW, r::Robot) where {W<:AbstractWez,VW<:AbstractVector{W}}
+    return minimum(collision_distance(w, r) for w in ws)
+end
 
 function collision_distance(c::W, x::SVector{3,F}) where {W<:AbstractWez,F}
-    r = Robot(x...)
+    r = Robot(x)
     return collision_distance(c, r)
 end
-
-function is_colliding(c::W, x::SVector{3,F}) where {W<:AbstractWez,F}
-    r = Robot(x...)
-    return is_colliding(c, r)
-end
-
 
 
 #############################################################
@@ -310,7 +328,7 @@ end
 
     # plot the wez boundary
     @series begin
-        seriestype = :path
+        seriestype := :path
         label --> false
         color --> :gray
         aspect_ratio --> :equal

@@ -165,12 +165,14 @@ function RRTStar.collision_free(
         @assert errcode == Dubins.EDUBOK errcode
 
         # check each point for collision 
-        r = Robot(q...)
+        r = Robot(q)
         if is_colliding(problem.wezes, r)
             return false
         end
     end
     return true
+
+    # return !is_colliding(problem.wezes, path, step_size)
 end
 
 """
@@ -179,13 +181,5 @@ end
 returns the dubins path length from x_near to x_new.
 """
 function RRTStar.path_cost(problem::DubinsRRTProblem, x_near, x_new)
-
-    # # create the path
-    # errcode, path = Dubins.dubins_shortest_path(x_near, x_new, problem.turning_radius)
-    # @assert errcode == Dubins.EDUBOK    
-
-    # L = Dubins.dubins_path_length(path)
-
-    # return L
     return dubins_distance(x_near, x_new, problem.turning_radius)
 end

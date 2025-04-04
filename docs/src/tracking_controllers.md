@@ -78,7 +78,7 @@ for i=2:length(waypoints)
     push!(path, p)
 end
 
-plot_scenario(wezes, robots)
+plot(wezes, robots)
 plot!(path, color=:black, label=false, linewidth=2)
 title!("best path")
 plot!()
@@ -155,7 +155,8 @@ plot!(t -> sol_2(t)[1], t -> sol_2(t)[2], tspan..., color=:green, linewidth=2, l
 ```
 
 We can animate the result too:
-```@example tracking
+```
+@example tracking
 
 @gif for t in range(tspan..., length=120)
 
@@ -171,7 +172,7 @@ We can animate the result too:
     plot!(t -> offset_path_2(t)[1], t -> offset_path_2(t)[2], tspan...; color=:gray, linestyle=:dash, label=false)
 
     # plot the robots at the current time
-    plot_scenario!(wezes, robots_)
+    plot!(wezes, robots_)
 
 end
 ```
