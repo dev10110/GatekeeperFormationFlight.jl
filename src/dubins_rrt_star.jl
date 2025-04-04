@@ -79,7 +79,7 @@ function RRTStar.sample_free(problem::DubinsRRTProblem)
 
         # check if q is in a wez
         r = Robot(q...)
-        if !is_colliding(proble.wezes, r)
+        if !is_colliding(problem.wezes, r)
             return q
         end
     end
@@ -160,8 +160,8 @@ function RRTStar.collision_free(problem::DubinsRRTProblem, x_nearest, x_new; ste
         @assert errcode == Dubins.EDUBOK errcode
 
         # check each point for collision 
-        r = Wez.Robot(q...)
-        if Wez.is_colliding(problem.wezes, r)
+        r = Robot(q...)
+        if is_colliding(problem.wezes, r)
             return false
         end
     end

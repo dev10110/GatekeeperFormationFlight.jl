@@ -3,8 +3,9 @@ using RecipesBase
 
 """
     Robot(x, y, ψ)
+    Robot([x, y, ψ])
 
-Create a robot with some x, y position and heading psi.
+Create a robot with some x, y position and heading ψ.
 """
 struct Robot{F}
     x::F
@@ -12,6 +13,10 @@ struct Robot{F}
     ψ::F
 end
 
+function Robot(v::VF) where {F, VF <: AbstractVector{F}}
+    @assert length(v) == 3
+    return Robot(v...)
+end
 
 """
     SVector(r::Robot)

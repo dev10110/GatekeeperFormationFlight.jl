@@ -1,5 +1,7 @@
 module RRTStar
 
+export Node, rrt_star, get_best_path
+
 abstract type AbstractProblem{T} end
 
 """
