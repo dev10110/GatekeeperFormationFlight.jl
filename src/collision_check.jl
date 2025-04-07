@@ -227,10 +227,10 @@ function is_colliding(
 end
 
 function is_colliding(
-    wezes::VW, 
-    paths::VP, 
-    tol = 1e-5
-) where {W <: AbstractWez, VW<: AbstractVector{W}, P <: DubinsPath, VP <: AbstractVector{P}}
+    wezes::VW,
+    paths::VP,
+    tol = 1e-5,
+) where {W<:AbstractWez,VW<:AbstractVector{W},P<:DubinsPath,VP<:AbstractVector{P}}
     for p in paths
         if is_colliding(wezes, p, tol)
             return true

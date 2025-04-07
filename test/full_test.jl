@@ -69,37 +69,34 @@ Dubins = GatekeeperFormationFlight.Dubins
     offsets = [SVector(robot) - SVector(leader_robot) for robot in robots]
 
     prob = GatekeeperProblem(;
-            wezes=wezes, 
-            reference_path=path,
-            offset=offsets[1], 
-            switch_step_size=2e-3, 
-            reconnection_step_size=0.01, 
-            max_Ts_horizon=0.5, 
-            integration_max_step_size=1e-3, 
-            collision_check_step_size=1e-3, 
-            ) 
+        wezes = wezes,
+        reference_path = path,
+        offset = offsets[1],
+        switch_step_size = 2e-3,
+        reconnection_step_size = 0.01,
+        max_Ts_horizon = 0.5,
+        integration_max_step_size = 1e-3,
+        collision_check_step_size = 1e-3,
+    )
 
- 
+
     gk_problems = [
         GatekeeperProblem(;
-            wezes=wezes, 
-            reference_path=path, offset=offsets[i], 
-            switch_step_size=2e-3, 
-            reconnection_step_size=0.01, 
-            max_Ts_horizon=0.5, 
-            integration_max_step_size=1e-3,
-            collision_check_step_size=1e-3,
-            ) 
-        for i=1:length(robots)
+            wezes = wezes,
+            reference_path = path,
+            offset = offsets[i],
+            switch_step_size = 2e-3,
+            reconnection_step_size = 0.01,
+            max_Ts_horizon = 0.5,
+            integration_max_step_size = 1e-3,
+            collision_check_step_size = 1e-3,
+        ) for i = 1:length(robots)
     ]
 
     tspan = [0.0, total_path_length(path)]
     gk_solutions = [
-        simulate_closed_loop_gatekeeper(
-            SVector(robots[i]), 
-            tspan, 
-            gk_problems[i])
-        for i=1:length(robots)
+        simulate_closed_loop_gatekeeper(SVector(robots[i]), tspan, gk_problems[i]) for
+        i = 1:length(robots)
     ]
 
     # TODO(dev): actually write a test that will check if gatekeeper is safe.
