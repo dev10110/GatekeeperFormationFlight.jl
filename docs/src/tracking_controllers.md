@@ -55,13 +55,14 @@ nodes = rrt_star(rrt_problem, nodes, 1000)
 # see if there is a path 
 success_code, waypoints = get_best_path(rrt_problem, nodes, @SVector [1.0, 1.0, 0])
 
-# while we havent found a path, add some nodes and check if we have a feasible path
-iter_counter = 0
-while !success_code  && iter_counter < 10
-    nodes = rrt_star(rrt_problem, nodes, 500)
-    success_code, waypoints = get_best_path(rrt_problem, nodes, [1.0, 1.0, 0])
-    iter_counter += 1
-end
+# uncomment the following code if you want to add more nodes to the RRT* problem:
+## while we havent found a path, add some nodes and check if we have a feasible path
+## iter_counter = 0
+## while !success_code  && iter_counter < 10
+##     nodes = rrt_star(rrt_problem, nodes, 500)
+##     success_code, waypoints = get_best_path(rrt_problem, nodes, [1.0, 1.0, 0])
+##     iter_counter += 1
+## end
         
 @assert success_code
 

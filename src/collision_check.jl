@@ -1,3 +1,5 @@
+# Copyright (c) 2025 Devansh R Agrawal - All rights reserved.
+
 using LinearAlgebra, StaticArrays
 using Dubins
 using RecipesBase

@@ -1,9 +1,5 @@
-# Gatekeeper
+# Copyright (c) 2025 Devansh R Agrawal - All rights reserved.
 
-## Example
-
-Consider the same environment as in the tracking controllers page.
-```@setup gk
 using GatekeeperFormationFlight
 using Plots, LinearAlgebra, StaticArrays, Random
 using Dubins
@@ -17,7 +13,10 @@ function create_random_scenario(N_wezes=24)
     wezes = vcat(wezes_1, wezes_2)
     return wezes
 end
-Random.seed!(27182818)
+
+# change the seed to get different environments
+# seed = 27182818 with 24 wezes is a good looking env.
+Random.seed!(27182818) 
 wezes = create_random_scenario(24)
 
 # create a set of robots
@@ -118,34 +117,14 @@ plot_scenario!(wezes, robots)
 plot!(path, color=:black, label=false, linewidth=2)
 title!("best path")
 plot!()
-```
+savefig("rrt_best_path.svg")
 
 
-```@example gk
-plot!()
-```
-
-Now we can construct a `GatekeeperProblem`:
-
-```@example gk
+## Now we can construct a `GatekeeperProblem`:
 
 offsets = [SVector(robot) - SVector(leader_robot) for robot in robots]
 
-prob = GatekeeperProblem(;
-        wezes=wezes, 
-        reference_path=path,
-        offset=offsets[1], 
-        switch_step_size=2e-3, 
-        reconnection_step_size=0.01, 
-        max_Ts_horizon=0.5, 
-        integration_max_step_size=1e-3, 
-        collision_check_step_size=1e-3, 
-        ) 
-```
-
-For all three robots, we can define the set of problems as 
-
-```@example gk
+# For all three robots, we can define the set of problems as 
 gk_problems = [
     GatekeeperProblem(;
         wezes=wezes, 
@@ -158,10 +137,8 @@ gk_problems = [
         ) 
     for i=1:length(robots)
 ]
-```
 
-We can now `solve` the problems and plot the solutions:
-```@example gk
+# We can now `solve` the problems and plot the solutions:
 tspan = [0.0, total_path_length(path)]
 gk_solutions = [
     simulate_closed_loop_gatekeeper(
@@ -176,66 +153,45 @@ Tmax = total_path_length(path)
 # plot reference path
 plot()
 plot_scenario!(wezes, robots)
-# for p in path
-#     plot!(p, color=:black, linestyle=:dash, label=false)
-# end
-
 # plot offset path
 for i=1:length(robots)
     plot!(τ-> get_reference_state_and_input(path, τ, offsets[i])[1][1], 
     τ-> get_reference_state_and_input(path, τ, offsets[i])[1][2],
     0.0, Tmax, linestyle=:dash, label=false, linecolor=:black)
 end
-
 # plot the gk solution
 for i=1:length(robots)
     plot!(t->gk_solutions[i](t)[1], t->gk_solutions[i](t)[2], 0.0, Tmax, label="gk_sol_$(i)", color=(i==1 ? :black : :green), linewidth=2)
 end
 
 plot!(aspect_ratio=:equal)
-```
+savefig("gatekeeper_paths.svg")
 
-Finally, lets animate the solutions:
-```@example gk
+# # Finally, lets animate the solutions:
+# anim = @animate for t in range(0, Tmax, length=120)
 
-@gif for t in range(0, Tmax, length=120)
+#     # grab the states
+#     robots_ = [Robot(gk_solutions[i](t)) for i=1:length(gk_solutions)]
 
-    # grab the states
-    robots_ = [Robot(gk_solutions[i](t)) for i=1:length(gk_solutions)]
+#     # start the plot
+#     plot()
 
-    # start the plot
-    plot()
+#     # plot the reference paths
+#     for i=1:3
+#         plot!(τ -> get_reference_state_and_input(path, τ, offsets[i])[1][1], τ -> get_reference_state_and_input(path, τ, offsets[i])[1][2], 0, Tmax;
+#             label=false, color=:gray, linestyle=:dash)
+#     end
 
-    # plot the reference paths
-    for i=1:3
-        plot!(τ -> get_reference_state_and_input(path, τ, offsets[i])[1][1], τ -> get_reference_state_and_input(path, τ, offsets[i])[1][2], 0, Tmax;
-            label=false, color=:gray, linestyle=:dash)
-    end
+#     # plot the trace of the robots upto this point of time
+#     for i=1:3
+#         plot!(τ -> gk_solutions[i](τ)[1], τ -> gk_solutions[i](τ)[2], 0.0, t, label="gk_sol_$(i)", color=(i==1 ? :black : :green), linewidth=2)
+#     end
 
-    # plot the trace of the robots upto this point of time
-    for i=1:3
-        plot!(τ -> gk_solutions[i](τ)[1], τ -> gk_solutions[i](τ)[2], 0.0, t, label="gk_sol_$(i)", color=(i==1 ? :black : :green), linewidth=2)
-    end
-
-    # plot the current state of affairs
-    plot_scenario!(wezes, robots_)
+#     # plot the current state of affairs
+#     plot_scenario!(wezes, robots_)
     
-    plot!()
-end
-```
+#     plot!()
+# end
 
-## Docs
-
-### Public:
-```@autodocs; canonical=false
-Modules = [GatekeeperFormationFlight]
-Pages = ["gatekeeper.jl"]
-Private = false
-```
-
-### Private:
-```@autodocs; canonical=false
-Modules = [GatekeeperFormationFlight]
-Pages = ["gatekeeper.jl"]
-Public = false
-```
+# gif(anim, "gatekeeper.gif")
+# see gatekeeper.gif for the animated solution.

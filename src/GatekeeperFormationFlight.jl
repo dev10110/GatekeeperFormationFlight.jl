@@ -1,3 +1,5 @@
+# Copyright (c) 2025 Devansh R Agrawal - All rights reserved.
+
 module GatekeeperFormationFlight
 
 export Robot, Cardioid, CircularWez, Cbez
@@ -9,7 +11,7 @@ export DubinsRRTProblem
 export total_path_length, apply_input_bounds
 export get_reference_state_and_input, tracking_controller
 
-export GatekeeperProblem, simulate_closed_loop_gatekeeper
+export GatekeeperProblem, simulate_closed_loop_gatekeeper, construct_candidate_trajectory
 
 include("utils.jl")
 include("robot.jl")

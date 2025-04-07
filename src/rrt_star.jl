@@ -1,3 +1,5 @@
+# Copyright (c) 2025 Devansh R Agrawal - All rights reserved.
+
 module RRTStar
 
 export Node, rrt_star, get_best_path

@@ -1,3 +1,5 @@
+# Copyright (c) 2025 Devansh R Agrawal - All rights reserved.
+
 using Dubins
 using StaticArrays, LinearAlgebra
 using OrdinaryDiffEq, DiffEqCallbacks
@@ -6,15 +8,15 @@ using OrdinaryDiffEq, DiffEqCallbacks
     GatekeeperProblem(kwargs...)
 
 construct a `GatekeeperProblem`. The arguments are:
-    wezes,                              # list of wezes
-    reference_path,                     # path of the leader
-    offset = SVector(0.0, 0.0, 0.0),    # desired offset from the leaders path
-    turning_radius = 0.1,               # max turning radius of a robot
-    max_Ts_horizon = 1.0,               # maximum switching time
-    reconnection_step_size = 0.1,       # resolution used for checking reconnection point
-    collision_check_step_size = 0.01,   # resolution used for checking collision along a path
-    integration_max_step_size = 0.05,   # max integration step size in nominal tracking
-    switch_step_size = 0.05             # resolution used to decrease switch time
+- wezes,                              # list of wezes
+- reference_path,                     # path of the leader
+- offset = SVector(0.0, 0.0, 0.0),    # desired offset from the leaders path
+- turning_radius = 0.1,               # max turning radius of a robot
+- max_Ts_horizon = 1.0,               # maximum switching time
+- reconnection_step_size = 0.1,       # resolution used for checking reconnection point
+- collision_check_step_size = 0.01,   # resolution used for checking collision along a path
+- integration_max_step_size = 0.05,   # max integration step size in nominal tracking
+- switch_step_size = 0.05             # resolution used to decrease switch time
 """
 @kwdef struct GatekeeperProblem{TW,TR,TO,TF}
     wezes::TW                            # list of wezes
