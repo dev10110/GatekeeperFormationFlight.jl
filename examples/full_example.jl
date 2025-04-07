@@ -7,36 +7,30 @@ using Dubins
 GFF = GatekeeperFormationFlight
 
 # create an environment
-function create_random_scenario(N_wezes=24)
-    wezes_1 = [Cardioid(rand(), rand()) for i=1:N_wezes/2]
-    wezes_2 = [Cardioid(0.5 + 0.2 * randn(), 0.5 + 0.2 * randn()) for i=1:N_wezes/2]
+function create_random_scenario(N_wezes = 24)
+    wezes_1 = [Cardioid(rand(), rand()) for i = 1:N_wezes/2]
+    wezes_2 = [Cardioid(0.5 + 0.2 * randn(), 0.5 + 0.2 * randn()) for i = 1:N_wezes/2]
     wezes = vcat(wezes_1, wezes_2)
     return wezes
 end
 
 # change the seed to get different environments
 # seed = 27182818 with 24 wezes is a good looking env.
-Random.seed!(27182818) 
+Random.seed!(27182818)
 wezes = create_random_scenario(24)
 
 # create a set of robots
-leader_robot = Robot(-0.25,0.,0.)
-follower_robots = [
-    Robot(-0.3, -0.05, 0.0), 
-    Robot(-0.3, 0.05, 0.0), 
-    ]
+leader_robot = Robot(-0.25, 0.0, 0.0)
+follower_robots = [Robot(-0.3, -0.05, 0.0), Robot(-0.3, 0.05, 0.0)]
 robots = vcat(leader_robot, follower_robots...)
 
 # plan a path for the leader using RRT*
-domain = (
-    (@SVector [0, 0, -1.0*π]),
-    (@SVector [1, 1,  1.0*π])
-)
+domain = ((@SVector [0, 0, -1.0 * π]), (@SVector [1, 1, 1.0 * π]))
 turning_radius = 0.1
 rrt_problem = DubinsRRTProblem(domain, turning_radius, wezes)
 
 # start the tree with the root node
-nodes = [Node(SVector(0,0,0.)), ]
+nodes = [Node(SVector(0, 0, 0.0))]
 
 # add 1000 nodes to the tree
 nodes = rrt_star(rrt_problem, nodes, 1000)
@@ -52,26 +46,28 @@ success_code, waypoints = get_best_path(rrt_problem, nodes, @SVector [1.0, 1.0, 
 ##     success_code, waypoints = get_best_path(rrt_problem, nodes, [1.0, 1.0, 0])
 ##     iter_counter += 1
 ## end
-        
+
 @assert success_code
 
 # prepend and append the start and the goal
-waypoints = [
-    SVector(leader_robot), 
-    waypoints..., 
-    SVector(1.25,1,0.)
-]
+waypoints = [SVector(leader_robot), waypoints..., SVector(1.25, 1, 0.0)]
 
 path = DubinsPath[]
 # add all the waypoints to the path
-for i=2:length(waypoints)
+for i = 2:length(waypoints)
     e, p = dubins_shortest_path(waypoints[i-1], waypoints[i], rrt_problem.turning_radius)
     @assert e == Dubins.EDUBOK
     push!(path, p)
 end
 
 # small function to help plot things
-function plot_scenario!(wezes::VW, robots::VR; draw_bbox=true, title=nothing, kwargs...) where {W <: GFF.AbstractWez, VW <: AbstractVector{W}, R <: Robot, VR <: AbstractVector{R}}
+function plot_scenario!(
+    wezes::VW,
+    robots::VR;
+    draw_bbox = true,
+    title = nothing,
+    kwargs...,
+) where {W<:GFF.AbstractWez,VW<:AbstractVector{W},R<:Robot,VR<:AbstractVector{R}}
 
     if draw_bbox
         # plot the bounding box
@@ -114,7 +110,7 @@ end
 
 plot()
 plot_scenario!(wezes, robots)
-plot!(path, color=:black, label=false, linewidth=2)
+plot!(path, color = :black, label = false, linewidth = 2)
 title!("best path")
 plot!()
 savefig("rrt_best_path.svg")
@@ -127,25 +123,22 @@ offsets = [SVector(robot) - SVector(leader_robot) for robot in robots]
 # For all three robots, we can define the set of problems as 
 gk_problems = [
     GatekeeperProblem(;
-        wezes=wezes, 
-        reference_path=path, offset=offsets[i], 
-        switch_step_size=2e-3, 
-        reconnection_step_size=0.01, 
-        max_Ts_horizon=0.5, 
-        integration_max_step_size=1e-3,
-        collision_check_step_size=1e-3,
-        ) 
-    for i=1:length(robots)
+        wezes = wezes,
+        reference_path = path,
+        offset = offsets[i],
+        switch_step_size = 2e-3,
+        reconnection_step_size = 0.01,
+        max_Ts_horizon = 0.5,
+        integration_max_step_size = 1e-3,
+        collision_check_step_size = 1e-3,
+    ) for i = 1:length(robots)
 ]
 
 # We can now `solve` the problems and plot the solutions:
 tspan = [0.0, total_path_length(path)]
 gk_solutions = [
-    simulate_closed_loop_gatekeeper(
-        SVector(robots[i]), 
-        tspan, 
-        gk_problems[i])
-    for i=1:length(robots)
+    simulate_closed_loop_gatekeeper(SVector(robots[i]), tspan, gk_problems[i]) for
+    i = 1:length(robots)
 ]
 
 Tmax = total_path_length(path)
@@ -154,17 +147,31 @@ Tmax = total_path_length(path)
 plot()
 plot_scenario!(wezes, robots)
 # plot offset path
-for i=1:length(robots)
-    plot!(τ-> get_reference_state_and_input(path, τ, offsets[i])[1][1], 
-    τ-> get_reference_state_and_input(path, τ, offsets[i])[1][2],
-    0.0, Tmax, linestyle=:dash, label=false, linecolor=:black)
+for i = 1:length(robots)
+    plot!(
+        τ -> get_reference_state_and_input(path, τ, offsets[i])[1][1],
+        τ -> get_reference_state_and_input(path, τ, offsets[i])[1][2],
+        0.0,
+        Tmax,
+        linestyle = :dash,
+        label = false,
+        linecolor = :black,
+    )
 end
 # plot the gk solution
-for i=1:length(robots)
-    plot!(t->gk_solutions[i](t)[1], t->gk_solutions[i](t)[2], 0.0, Tmax, label="gk_sol_$(i)", color=(i==1 ? :black : :green), linewidth=2)
+for i = 1:length(robots)
+    plot!(
+        t -> gk_solutions[i](t)[1],
+        t -> gk_solutions[i](t)[2],
+        0.0,
+        Tmax,
+        label = "gk_sol_$(i)",
+        color = (i == 1 ? :black : :green),
+        linewidth = 2,
+    )
 end
 
-plot!(aspect_ratio=:equal)
+plot!(aspect_ratio = :equal)
 savefig("gatekeeper_paths.svg")
 
 # # Finally, lets animate the solutions:
@@ -189,7 +196,7 @@ savefig("gatekeeper_paths.svg")
 
 #     # plot the current state of affairs
 #     plot_scenario!(wezes, robots_)
-    
+
 #     plot!()
 # end
 
