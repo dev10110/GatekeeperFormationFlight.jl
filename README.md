@@ -48,3 +48,14 @@ and then use the liveserver to serve the documentation. Building the docs locall
 ```
 Copyright (c) 2025 Devansh R Agrawal. All Rights Reserved.
 ```
+
+Consider citing the underlying work:
+```
+@article{agrawal2024gatekeeper,
+  title={gatekeeper: Online safety verification and control for nonlinear systems in dynamic environments},
+  author={Agrawal, Devansh Ramgopal and Chen, Ruichang and Panagou, Dimitra},
+  journal={IEEE Transactions on Robotics},
+  year={2024},
+  publisher={IEEE}
+}
+```
