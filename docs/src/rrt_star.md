@@ -147,8 +147,7 @@ plot!()
 Notice we have provided a function to call `plot!` on `DubinsPath` or on `Vector{DubinsPath}`. 
 
 We can also animate the trajectory 
-```
-@example rrt
+```@example rrt
 
 @gif for t in range(0, total_path_length(path), length=120)
 
@@ -156,7 +155,8 @@ We can also animate the trajectory
 
     leader = Robot(leader_state)
 
-    plot(wezes, leader)
+    plot()
+    plot_scenario!(wezes, [leader])
 end
 ```
 `get_reference_state_and_input` is explained on the next page.

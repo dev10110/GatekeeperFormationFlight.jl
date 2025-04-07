@@ -22,6 +22,7 @@ makedocs(;
         "Robots and Wezes" => "robots_and_wezes.md",
         "RRT*" => "rrt_star.md",
         "Tracking Controllers" => "tracking_controllers.md",
+        "Gatekeeper" => "gatekeeper.md",
         "API" => "api.md",
     ],
     clean = false,

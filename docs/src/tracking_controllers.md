@@ -160,7 +160,7 @@ However these offset paths do not respect input bounds.
 We can now simulate a robot tracking this trajectory:
 
 ```@example tracking
-using DifferentialEquations
+using OrdinaryDiffEq
 
 # define the closed-loop controller
 function closed_loop_tracking(x, params, t)
@@ -200,8 +200,7 @@ plot!(t -> sol_2(t)[1], t -> sol_2(t)[2], tspan..., color=:green, linewidth=2, l
 ```
 
 We can animate the result too:
-```
-@example tracking
+```@example tracking
 
 @gif for t in range(tspan..., length=120)
 
@@ -217,7 +216,7 @@ We can animate the result too:
     plot!(t -> offset_path_2(t)[1], t -> offset_path_2(t)[2], tspan...; color=:gray, linestyle=:dash, label=false)
 
     # plot the robots at the current time
-    plot!(wezes, robots_)
+    plot_scenario!(wezes, robots_)
 
 end
 ```
