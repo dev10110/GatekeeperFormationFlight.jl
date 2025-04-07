@@ -6,11 +6,13 @@ Note, we are using Dev's fork of `Dubins.jl`, available at [http://github.com/de
 
 ## Example: 
 
-First define the environment:
-```@example rrt
+First define the environment, as in the previous page.
+```@setup rrt
 using GatekeeperFormationFlight
 using Plots, LinearAlgebra, StaticArrays, Random
 using Dubins
+
+GFF = GatekeeperFormationFlight
 
 # create an environment
 function create_random_scenario(N_wezes=24)
@@ -30,8 +32,57 @@ follower_robots = [
     ]
 robots = vcat(leader_robot, follower_robots...)
 
+# small function to help plot things
+function plot_scenario!(wezes::VW, robots::VR; draw_bbox=true, title=nothing, kwargs...) where {W <: GFF.AbstractWez, VW <: AbstractVector{W}, R <: Robot, VR <: AbstractVector{R}}
+
+    if draw_bbox
+        # plot the bounding box
+        plot!([0, 1, 1, 0, 0], [0, 0, 1, 1, 0], label = false, color = :black)
+        plot!(xlims = (-0.4, 1.4), ylims = (-0.1, 1.1))
+    end
+
+    # plot the wezes
+    for wez in wezes, robot in robots
+        plot!(wez, robot)
+    end
+
+    # plot the robot
+    for robot in robots
+        color = is_colliding(wezes, robot) ? :red : :green
+        plot!(robot; color = color)
+    end
+
+    if isnothing(title)
+        # get the minimum collision distance
+        mind = Inf
+        for r in robots, w in wezes
+            d = collision_distance(w, r)
+            mind = min(mind, d)
+        end
+        plot!(title = "Min Wez Distance: $(round(mind; digits=2))")
+
+        if mind <= 0
+            plot!(titlefont = font(:red))
+        else
+            plot!(titlefont = font(:black))
+        end
+    else
+        plot!(title = title)
+    end
+
+    plot!()
+
+end
+
 # plot everything
-plot(wezes, robots)
+plot()
+plot_scenario!(wezes, robots)
+```
+
+```@example rrt
+# plot everything
+plot()
+plot_scenario!(wezes, robots)
 ```
 
 Define and solve the RRT* problem:
@@ -86,7 +137,8 @@ path
 `path` is now of type `Vector{DubinsPath}`. Plot it:
 
 ```@example rrt
-plot(wezes, robots)
+plot()
+plot_scenario!(wezes, robots)
 plot!(path, color=:black, label=false, linewidth=2)
 title!("best path")
 plot!()
@@ -111,7 +163,16 @@ end
 
 ## Docs
 
+### Public
 ```@autodocs; canonical=false
 Modules=[GatekeeperFormationFlight]
 Pages = ["dubins_rrt_star.jl"]
+Private = false
+```
+
+### Private
+```@autodocs; canonical=false
+Modules=[GatekeeperFormationFlight]
+Pages = ["dubins_rrt_star.jl"]
+Public = false
 ```
