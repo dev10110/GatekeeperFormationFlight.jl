@@ -8,11 +8,12 @@ export Node, rrt_star, get_best_path
 export DubinsRRTProblem
 export total_path_length, apply_input_bounds
 export get_reference_state_and_input, tracking_controller
+export path_is_colliding
 
 include("utils.jl")
 include("robot.jl")
 include("wez.jl")
-# include("collision_check.jl")
+include("collision_check.jl")
 include("plotting_utils.jl")
 include("rrt_star.jl")
 include("dubins_rrt_star.jl")

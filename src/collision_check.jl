@@ -10,7 +10,7 @@ abstract type CollisionRegion{F} end
 defines a circluar region by center and radius.
 """
 struct Circle{F} <: CollisionRegion{F}
-    center::SVector{2, F}
+    center::SVector{2,F}
     radius::F
 end
 
@@ -20,8 +20,8 @@ end
 defines a line segment connecting points `p1` and `p2`. Both `p1` and `p2` must be of type `SVector{2, F}`. 
 """
 struct LineSegment{F} <: CollisionRegion{F}
-    p1::SVector{2, F}
-    p2::SVector{2, F}
+    p1::SVector{2,F}
+    p2::SVector{2,F}
 end
 
 """
@@ -39,7 +39,7 @@ end
 
 return true if the distance between `reg1` and `reg2` is less than `tol`.
 """
-function is_colliding(reg1::CollisionRegion, reg2::CollisionRegion, tol=0)
+function is_colliding(reg1::CollisionRegion, reg2::CollisionRegion, tol = 0)
     return minimum_distance(reg1, reg2) <= tol
 end
 
@@ -100,7 +100,7 @@ function create_collision_region(path::DubinsPath, segment_id)
     segment_type = Dubins.DIRDATA[dubins_path_type(path)][segment_id]
 
     # get the state at the start of the segment
-    ti = sum(path.params[SOneTo(segment_id-1)]) * path.ρ
+    ti = sum(path.params[SOneTo(segment_id - 1)]) * path.ρ
     tf = sum(path.params[SOneTo(segment_id)]) * path.ρ
 
     # get the initial point on this segment
@@ -138,89 +138,93 @@ given a wez, create a maximum collision region around it.
 Currently only implemented for Cardioid.
 """
 function create_collision_region(c::Cardioid)
-    return Circle( SVector(c.x, c.y), c.Rmax)
+    return Circle(SVector(c.x, c.y), c.Rmax)
 end
 
-# """
-#     is_colliding(wez::AbstractWez, path::DubinsPath, tol=1e-5)
+"""
+    is_colliding(wez::AbstractWez, path::DubinsPath, tol=1e-5)
 
-# returns true if the dubins path gets within `tol` distance of the wez. 
+returns true if the dubins path gets within `tol` distance of the wez. 
     
-# Checks by sampling every point `tol` apart along the path. 
+Checks by sampling every point `tol` apart along the path. 
 
-# To reduce computational cost, it checks bounding boxes first, and then also skips points too close to each other where there is no possibility of collision. 
-# """
-# function is_colliding(wez::W, path::DubinsPath, tol=1e-5) where {W <: AbstractWez}
+To reduce computational cost, it checks bounding boxes first, and then also skips points too close to each other where there is no possibility of collision. 
+"""
+function is_colliding(wez::W, path::DubinsPath, tol = 1e-5) where {W<:AbstractWez}
 
-#     # get the critical times
-#     t0 = 0.0
-#     t1 = path.params[1] * path.ρ
-#     t2 = t1 + path.params[2] * path.ρ
-#     t3 = t2 + path.params[3] * path.ρ
+    # get the critical times
+    t0 = 0.0
+    t1 = path.params[1] * path.ρ
+    t2 = t1 + path.params[2] * path.ρ
+    t3 = t2 + path.params[3] * path.ρ
 
-#     # construct the vector of critical times
-#     ts = SVector(t0, t1, t2, t3) 
+    # construct the vector of critical times
+    ts = SVector(t0, t1, t2, t3)
 
-#     # create the wez collision region
-#     wez_collision_region = create_collision_region(wez)
+    # create the wez collision region
+    wez_collision_region = create_collision_region(wez)
 
-#     # first check if the bounding regions are colliding
-#     for sub_idx in 1:3
-        
-#         # create a bounding region for this subpath
-#         path_collision_region = create_collision_region(path, sub_idx)
+    # first check if the bounding regions are colliding
+    for sub_idx = 1:3
 
-#         # check collisions with wez (by using the bounding boxes)
-#         if is_colliding(wez_collision_region, path_collision_region, tol)
+        # create a bounding region for this subpath
+        path_collision_region = create_collision_region(path, sub_idx)
 
-#             # check by sampling the trajectory
-#             last_τ = ts[sub_idx-1]
-#             last_distance = 0.0
+        # check collisions with wez (by using the bounding boxes)
+        if is_colliding(wez_collision_region, path_collision_region, tol)
 
-#             # loop through and check each point
-#             for τ in range(ts[sub_idx-1], ts[sub_idx], step=tol)
+            # check by sampling the trajectory
+            last_τ = ts[sub_idx]
+            last_distance = 0.0
 
-#                 # skip anypoints too close to the last sample
-#                 if (τ - last_τ) < last_distance
-#                     continue
-#                 end
+            # loop through and check each point
+            for τ in range(ts[sub_idx], ts[sub_idx+1], step = tol)
 
-#                 # sample the point
-#                 errcode, s = dubins_path_sample(path, τ)
-#                 @assert errcode == Dubins.EDUBOK
+                # skip anypoints too close to the last sample
+                if (τ - last_τ) < last_distance
+                    continue
+                end
 
-#                 if is_colliding(wez, s, tol)
-#                     return true
-#                 end
+                # sample the point
+                errcode, s = dubins_path_sample(path, τ)
+                @assert errcode == Dubins.EDUBOK
 
-#                 # since we checked a new point update the vars
-#                 last_τ = τ
-#                 last_distance = minimum_distance(wez, SVector(s[1], s[2]))
-#             end
-#         end
-#     end
+                if is_colliding(wez, s, tol)
+                    return true
+                end
 
-#     return false
-    
-# end
+                # since we checked a new point update the vars
+                last_τ = τ
+                last_distance = minimum_distance(wez, SVector(s[1], s[2]))
+            end
+        end
+    end
 
-# """
-#     is_colliding(wezes::Vector{AbstractWez}, path::DubinsPath, tol=1e-5)
+    return false
 
-# returns true if the dubins path gets within `tol` distance of any wez. See docs for `is_colliding(wez, path, tol)`.
-# Sorts the wezes by distance before checking each one. 
-# """
-# function is_colliding(wezes::VW, path::DubinsPath, tol=1e-5) where {W <: AbstractWez, VW <: AbstractVector{W}}
-#     min_dists = @SVector [minimum_distance(wez, path.qi) for wez in wezes]
-#     idxs = sortperm(min_dists)
+end
 
-#     for i in idxs
-#         if is_colliding(wezes[i], path, tol)
-#             return true
-#         end
-#     end
-#     return false
-# end
+"""
+    is_colliding(wezes::Vector{AbstractWez}, path::DubinsPath, tol=1e-5)
+
+returns true if the dubins path gets within `tol` distance of any wez. See docs for `is_colliding(wez, path, tol)`.
+Sorts the wezes by distance before checking each one. 
+"""
+function is_colliding(
+    wezes::VW,
+    path::DubinsPath,
+    tol = 1e-5,
+) where {W<:AbstractWez,VW<:AbstractVector{W}}
+    min_dists = [minimum_distance(wez, path.qi[SOneTo(2)]) for wez in wezes]
+    idxs = sortperm(min_dists)
+
+    for i in idxs
+        if is_colliding(wezes[i], path, tol)
+            return true
+        end
+    end
+    return false
+end
 
 
 #################################################
@@ -231,8 +235,8 @@ end
 
     N = 50
 
-    x = [c.center[1] + c.radius * cos(t) for t in range(0, 2π, length=N)]
-    y = [c.center[2] + c.radius * sin(t) for t in range(0, 2π, length=N)]
+    x = [c.center[1] + c.radius * cos(t) for t in range(0, 2π, length = N)]
+    y = [c.center[2] + c.radius * sin(t) for t in range(0, 2π, length = N)]
 
     @series begin
         label --> false

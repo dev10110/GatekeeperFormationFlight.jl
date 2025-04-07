@@ -1,7 +1,11 @@
 using RecipesBase
 using Dubins
 
-@recipe function plot_scenario(wezes::VW, robots::Vector{Robot}; draw_bbox=true) where {W <: AbstractWez, VW <: AbstractVector{W}}
+@recipe function plot_scenario(
+    wezes::VW,
+    robots::Vector{Robot};
+    draw_bbox = true,
+) where {W<:AbstractWez,VW<:AbstractVector{W}}
 
     # if draw_bbox
     #     # plot the bounding box

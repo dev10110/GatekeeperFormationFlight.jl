@@ -154,25 +154,25 @@ function RRTStar.collision_free(
     errcode, path = Dubins.dubins_shortest_path(x_nearest, x_new, problem.turning_radius)
     @assert errcode == Dubins.EDUBOK
 
-    L = Dubins.dubins_path_length(path)
+    # L = Dubins.dubins_path_length(path)
 
-    # sample path at a fine resolution
-    xs = range(0.0, L, step = step_size)
+    # # sample path at a fine resolution
+    # xs = range(0.0, L, step = step_size)
 
-    for x in xs
-        errcode, q = Dubins.dubins_path_sample(path, x)
-        #     errcode, samples = Dubins.dubins_path_sample_many(path, resolution)
-        @assert errcode == Dubins.EDUBOK errcode
+    # for x in xs
+    #     errcode, q = Dubins.dubins_path_sample(path, x)
+    #     #     errcode, samples = Dubins.dubins_path_sample_many(path, resolution)
+    #     @assert errcode == Dubins.EDUBOK errcode
 
-        # check each point for collision 
-        r = Robot(q)
-        if is_colliding(problem.wezes, r)
-            return false
-        end
-    end
-    return true
+    #     # check each point for collision 
+    #     r = Robot(q)
+    #     if is_colliding(problem.wezes, r)
+    #         return false
+    #     end
+    # end
+    # return true
 
-    # return !is_colliding(problem.wezes, path, step_size)
+    return !is_colliding(problem.wezes, path, step_size)
 end
 
 """
