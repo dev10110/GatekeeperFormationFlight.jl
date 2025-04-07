@@ -1,4 +1,8 @@
 using GatekeeperFormationFlight
 using Test
 
-include("full_test.jl")
+@testset "GatekeeperFormationFlight" begin
+
+    include("full_test.jl")
+
+end

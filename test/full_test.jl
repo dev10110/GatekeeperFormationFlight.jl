@@ -1,8 +1,5 @@
 using GatekeeperFormationFlight
-# using Plots
 using LinearAlgebra, StaticArrays, Random
-# using Dubins
-using Test
 
 # use the dubins in GatekeeperFormationFlight
 Dubins = GatekeeperFormationFlight.Dubins
@@ -51,7 +48,7 @@ Dubins = GatekeeperFormationFlight.Dubins
         success_code, waypoints = get_best_path(rrt_problem, nodes, [1.0, 1.0, 0])
         iter_counter += 1
     end
-            
+
     @assert success_code
 
     # prepend and append the start and the goal
@@ -61,16 +58,21 @@ Dubins = GatekeeperFormationFlight.Dubins
         SVector(1.25,1,0.)
     ]
 
-    path = DubinsPath[]
+    # create all the dubins paths
+    path = Dubins.DubinsPath[]
     # add all the waypoints to the path
     for i=2:length(waypoints)
-        e, p = dubins_shortest_path(waypoints[i-1], waypoints[i], rrt_problem.turning_radius)
+        e, p = Dubins.dubins_shortest_path(waypoints[i-1], waypoints[i], rrt_problem.turning_radius)
         @assert e == Dubins.EDUBOK
         push!(path, p)
     end
 
-    # plot_scenario(wezes, robots)
-    # plot!(path, color=:black, label=false, linewidth=2)
-    # title!("best path")
-    # plot!()
+    @show length(path)
+    @test length(path) == 6
+
+
+    # now test gatekeeper tracking on this trajectory
+    
+
+
 end
