@@ -18,6 +18,15 @@ function dubins_distance_3d(
     return DubinsManeuver3D(q1, q2, turning_radius, pitch_angle_constraints).length
 end
 
+"""
+    in_domain(domain, q)
+
+returns true if the state q is within the domain defined by the tuple domain
+"""
+function in_domain(domain::Tuple{SVector{6,F},SVector{6,F}}, q::Vector{F}) where {F}
+    return all(q .>= domain[1][1:5]) && all(q .<= domain[2][1:5])
+end
+
 
 """
     Dubins3DRRTProblem(domain, turning_radius, wezes)
@@ -195,7 +204,10 @@ function RRTStar.collision_free(
     sampled_path = compute_sampling(maneuver; numberOfSamples = num_samples)
 
     # check if any of the points in the path are colliding with the obstacles
-    return !any(is_colliding(problem.obstacles, x[1:3]) for x in sampled_path)
+    return !any(
+        is_colliding(problem.obstacles, x[1:3]) && in_domain(problem.domain, x) for
+        x in sampled_path
+    )
 end
 
 """

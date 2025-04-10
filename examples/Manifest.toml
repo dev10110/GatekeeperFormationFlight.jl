@@ -1,8 +1,8 @@
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.11.3"
+julia_version = "1.11.4"
 manifest_format = "2.0"
-project_hash = "cc7d7f460bfb5a7567e6b3460cfe68bf68ff1ddf"
+project_hash = "1b0da9b3c637748522a432979e082d604fd0f676"
 
 [[deps.ADTypes]]
 git-tree-sha1 = "e2478490447631aedba0823d4d7a80b2cc8cdb32"
@@ -260,6 +260,12 @@ git-tree-sha1 = "d9d26935a0bcffc87d2613ce14c527c99fc543fd"
 uuid = "f0e56b4a-5159-44fe-b623-3e5288b988bb"
 version = "2.5.0"
 
+[[deps.Conda]]
+deps = ["Downloads", "JSON", "VersionParsing"]
+git-tree-sha1 = "b19db3927f0db4151cb86d073689f2428e524576"
+uuid = "8f4d0f93-b110-5947-807f-2305c1781a2d"
+version = "1.10.2"
+
 [[deps.ConstructionBase]]
 git-tree-sha1 = "76219f1ed5771adbb096743bff43fb5fdd4c1157"
 uuid = "187b0558-2788-49d3-abe0-74a17ed4e7c9"
@@ -445,6 +451,12 @@ repo-rev = "master"
 repo-url = "https://github.com/dev10110/Dubins.jl.git"
 uuid = "c4b27c1d-289f-5655-aa69-f096df7d9e2b"
 version = "1.2.3"
+
+[[deps.Dubins3D]]
+deps = ["Printf", "Test"]
+git-tree-sha1 = "07df78fa69ef6f6c7ea44b78cff625207867ca65"
+uuid = "b218df9c-8706-40c8-80f9-13e28a209add"
+version = "0.2.3"
 
 [[deps.EnumX]]
 git-tree-sha1 = "bddad79635af6aec424f53ed8aad5d7555dc6f00"
@@ -672,7 +684,7 @@ uuid = "d2c73de3-f751-5644-a686-071e5b155ba9"
 version = "0.73.13+0"
 
 [[deps.GatekeeperFormationFlight]]
-deps = ["DiffEqCallbacks", "Dubins", "LinearAlgebra", "OrdinaryDiffEq", "RecipesBase", "StaticArrays"]
+deps = ["DiffEqCallbacks", "Dubins", "Dubins3D", "LinearAlgebra", "OrdinaryDiffEq", "RecipesBase", "StaticArrays"]
 path = ".."
 uuid = "c276d96c-8ff3-430d-986d-db5867057ed6"
 version = "1.0.0-DEV"
@@ -1250,7 +1262,7 @@ version = "0.3.27+1"
 [[deps.OpenLibm_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "05823500-19ac-5b8b-9628-191a04bc5112"
-version = "0.8.1+2"
+version = "0.8.1+4"
 
 [[deps.OpenSSL]]
 deps = ["BitFlags", "Dates", "MozillaCACerts_jll", "OpenSSL_jll", "Sockets"]
@@ -1594,6 +1606,18 @@ version = "1.11.0"
 git-tree-sha1 = "1d36ef11a9aaf1e8b74dacc6a731dd1de8fd493d"
 uuid = "43287f4e-b6f4-7ad1-bb20-aadabca52c3d"
 version = "1.3.0"
+
+[[deps.PyCall]]
+deps = ["Conda", "Dates", "Libdl", "LinearAlgebra", "MacroTools", "Serialization", "VersionParsing"]
+git-tree-sha1 = "9816a3826b0ebf49ab4926e2b18842ad8b5c8f04"
+uuid = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0"
+version = "1.96.4"
+
+[[deps.PyPlot]]
+deps = ["Colors", "LaTeXStrings", "PyCall", "Sockets", "Test", "VersionParsing"]
+git-tree-sha1 = "d2c2b8627bbada1ba00af2951946fb8ce6012c05"
+uuid = "d330b81b-6aea-500a-939a-2ce795aea3ee"
+version = "2.11.6"
 
 [[deps.Qt6Base_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "Fontconfig_jll", "Glib_jll", "JLLWrappers", "Libdl", "Libglvnd_jll", "OpenSSL_jll", "Vulkan_Loader_jll", "Xorg_libSM_jll", "Xorg_libXext_jll", "Xorg_libXrender_jll", "Xorg_libxcb_jll", "Xorg_xcb_util_cursor_jll", "Xorg_xcb_util_image_jll", "Xorg_xcb_util_keysyms_jll", "Xorg_xcb_util_renderutil_jll", "Xorg_xcb_util_wm_jll", "Zlib_jll", "libinput_jll", "xkbcommon_jll"]
@@ -2086,6 +2110,11 @@ version = "1.6.4"
 git-tree-sha1 = "ca0969166a028236229f63514992fc073799bb78"
 uuid = "41fe7b60-77ed-43a1-b4f0-825fd5a5650d"
 version = "0.2.0"
+
+[[deps.VersionParsing]]
+git-tree-sha1 = "58d6e80b4ee071f5efd07fda82cb9fbe17200868"
+uuid = "81def892-9a0e-5fdd-b105-ffc91e053289"
+version = "1.3.0"
 
 [[deps.VertexSafeGraphs]]
 deps = ["Graphs"]

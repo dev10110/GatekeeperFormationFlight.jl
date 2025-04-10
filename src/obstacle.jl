@@ -128,7 +128,7 @@ Cylinder(O::SVector{3,F}, E::SVector{3,F}) where {F} = Cylinder(O, E, convert(F,
 ###############################################################
 @recipe function plot_sphere(s::O) where {O<:Sphere}
     seriestype := :surface
-    alpha --> 0.5
+    alpha --> 0.8
 
     u = range(0, 2π, length = 30)
     v = range(0, π, length = 30)
