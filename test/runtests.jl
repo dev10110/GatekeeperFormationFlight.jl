@@ -4,7 +4,7 @@ using GatekeeperFormationFlight
 using Test
 
 @testset "GatekeeperFormationFlight" begin
-
+    include("3d_robot_test.jl")
     include("collision_check.jl")
     include("full_test.jl")
 
