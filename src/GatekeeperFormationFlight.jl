@@ -2,7 +2,13 @@
 
 module GatekeeperFormationFlight
 
+# 2D Exports
 export Robot, Cardioid, CircularWez, Cbez
+
+# 3D Exports
+export Robot3, Sphere
+export Dubins3DRRTProblem
+
 export wez_coordinates
 export is_colliding, collision_distance, minimum_distance
 # export plot_scenario!, plot_scenario
@@ -21,6 +27,11 @@ include("plotting_utils.jl")
 include("rrt_star.jl")
 include("dubins_rrt_star.jl")
 include("tracking_controller.jl")
+
+include("robot_3d.jl")
+include("obstacle.jl")
+include("3d_dubins_rrt_star.jl")
+
 include("gatekeeper.jl")
 
 end
