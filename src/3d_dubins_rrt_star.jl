@@ -204,8 +204,9 @@ function RRTStar.collision_free(
     sampled_path = compute_sampling(maneuver; numberOfSamples = num_samples)
 
     # check if any of the points in the path are colliding with the obstacles
+    # or if any points are outside of the domain
     return !any(
-        is_colliding(problem.obstacles, x[1:3]) && in_domain(problem.domain, x) for
+        is_colliding(problem.obstacles, x[1:3]) || !in_domain(problem.domain, x) for
         x in sampled_path
     )
 end

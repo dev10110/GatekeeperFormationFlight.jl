@@ -105,22 +105,34 @@ function collision_distance(s::Sphere, x::SVector{3,F}) where {F}
 end
 
 ###############################################################
-### Cylindrical ###############################################
+### Vertical Cylinder ###############################################
 ###############################################################
 """
-    Cylinder(O::SVector{3, F}, E::SVector{3, F}, R::F)
+    VerticalCylinder(O::SVector{3, F}, R::F)
 
-Constructs a static cylindrical obstacle, with origin O, extemum E (vector representing the axis of the cylindar) and radius R
+Constructs a static vertical cylindrical obstacle, with origin O and radius R
 """
 struct Cylinder{F} <: AbstractObstacle
-    O::SVector{3,F}
-    E::SVector{3,F}
-    R::F
+    center::SVector{3,F}
+    radius::F
 end
-Cylinder(O::SVector{3,F}, E::SVector{3,F}) where {F} = Cylinder(O, E, convert(F, 0.15))
+Cylinder(center::SVector{3,F}) where {F} = Cylinder(center, E, 10.0)
+Cylinder(x::F, y::F, r::F) where {F} = Cylinder(SVector{3,F}([x, y, 0.0]), r)
 
-## TODO
+"""
+    collision_distance(center::Cylinder, x::SVector{3,F})
+"""
+function collision_distance(c::Cylinder, x::SVector{3,F}) where {F}
+    # get the distance to the vertical line that defines the cylinder
+    # dot product with the normal vector
+    n = @SVector [0.0, 0.0, 1.0]
 
+    # ||(center - x) - ((center - x) dot n) * n||
+    diff = c.center - x
+
+    vec = diff - (diff' * n) * n
+    return sqrt(vec' * vec) - c.radius
+end
 
 
 ###############################################################
@@ -138,4 +150,59 @@ Cylinder(O::SVector{3,F}, E::SVector{3,F}) where {F} = Cylinder(O, E, convert(F,
     z = s.pos[3] .+ s.R * ones(length(u)) * cos.(v)'
 
     x, y, z
+end
+
+# @recipe function plot_cylinder(c::Cylinder)
+#     seriestype := :surface
+#     alpha --> 0.8
+
+#     u = range(0, 2π, length = 30) # Angular parameter (full circle)
+#     v = range(-c.radius, c.radius, length = 30) # Radial parameter (problem!)
+
+#     x = c.center[1] .+ c.radius * cos.(u) * ones(length(v))'
+#     y = c.center[2] .+ c.radius * sin.(u) * ones(length(v))'
+#     z = c.center[3] .+ ones(length(u)) * v'
+
+#     x, y, z
+# end
+
+@recipe function plot_cylinder(c::Cylinder, height = 100.0)  # Add height parameter
+    # 3D Cylinder
+    seriestype := :surface
+    colorbar --> false
+    label --> false
+    alpha --> 0.8
+
+    u = range(0, 2π, length = 30)  # Angular parameter (around cylinder)
+    h = range(0, height, length = 30)  # Height parameter (up the cylinder)
+
+    # Create a proper cylinder with constant radius
+    x = c.center[1] .+ c.radius * cos.(u) * ones(length(h))'
+    y = c.center[2] .+ c.radius * sin.(u) * ones(length(h))'
+    z = c.center[3] .+ ones(length(u)) * h'  # This makes it vertical
+
+    return x, y, z
+end
+
+struct PlotCircle{F}
+    center::SVector{2,F}
+    radius::F
+end
+PlotCircle(cylinder::Cylinder) = PlotCircle(
+    SVector{2,Float64}([cylinder.center[1], cylinder.center[2]]),
+    cylinder.radius,
+)
+
+
+
+@recipe function plot_circle(c::PlotCircle)
+    seriestype := :path
+    alpha --> 0.8
+
+    u = range(0, 2π, length = 30)
+
+    x = c.center[1] .+ c.radius * cos.(u)
+    y = c.center[2] .+ c.radius * sin.(u)
+
+    return x, y
 end

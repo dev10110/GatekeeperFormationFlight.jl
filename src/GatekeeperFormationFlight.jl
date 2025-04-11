@@ -6,7 +6,7 @@ module GatekeeperFormationFlight
 export Robot, Cardioid, CircularWez, Cbez
 
 # 3D Exports
-export Robot3, Sphere
+export Robot3, Sphere, Cylinder, PlotCircle
 export Dubins3DRRTProblem
 
 export wez_coordinates
