@@ -24,14 +24,14 @@ function collision_distance end
 """
 Check if a 3D point is within a distance tol of an obstacle
 """
-function is_colliding(obstacle::O, v::SVector{3,F}, tol = 0) where {O<:AbstractObstacle,F}
+function is_colliding(obstacle::O, v::SVector{3,F}, tol = 0.0) where {O<:AbstractObstacle,F}
     return collision_distance(obstacle, v) <= tol
 end
 
 """
 Check if a Robot3 is within a distance tol of an obstacle
 """
-function is_colliding(obstacle::O, r::Robot3, tol = 0) where {O<:AbstractObstacle}
+function is_colliding(obstacle::O, r::Robot3, tol = 0.0) where {O<:AbstractObstacle}
     return is_colliding(obstacle, r.pos, tol)
 end
 
@@ -41,7 +41,7 @@ Check if a 3D point is within a distance tol of any obstacle in the vector obsta
 function is_colliding(
     obstacles::Vector{O},
     v::SVector{3,F},
-    tol = 0,
+    tol = 0.0,
 ) where {O<:AbstractObstacle,F}
     return any(obs -> is_colliding(obs, v, tol), obstacles)
 end
@@ -49,14 +49,18 @@ end
 """
 Returns true if the robot is within distasnce tol of any obstacle o ∈ obstacles
 """
-function is_colliding(obstacles::Vector{O}, r::Robot3, tol = 0) where {O<:AbstractObstacle}
+function is_colliding(
+    obstacles::Vector{O},
+    r::Robot3,
+    tol = 0.0,
+) where {O<:AbstractObstacle}
     return is_colliding(obstacles, r.pos, tol)
 end
 
 function is_colliding(
     obstacles::Vector{O},
     v::Vector{F},
-    tol = 0,
+    tol = 0.0,
 ) where {O<:AbstractObstacle,F}
     @assert length(v) >= 3
 
@@ -125,13 +129,16 @@ Cylinder(x::F, y::F, r::F) where {F} = Cylinder(SVector{3,F}([x, y, 0.0]), r)
 function collision_distance(c::Cylinder, x::SVector{3,F}) where {F}
     # get the distance to the vertical line that defines the cylinder
     # dot product with the normal vector
-    n = @SVector [0.0, 0.0, 1.0]
 
+    # Infinite vertical cylinder...
+    diff = c.center[1:2] - x[1:2]
+    return norm(diff) - c.radius
+
+    # n = @SVector [0.0, 0.0, 1.0]
     # ||(center - x) - ((center - x) dot n) * n||
-    diff = c.center - x
 
-    vec = diff - (diff' * n) * n
-    return sqrt(vec' * vec) - c.radius
+    # vec = diff - (diff' * n) * n
+    # return norm(vec) - c.radius
 end
 
 
@@ -171,7 +178,7 @@ end
     seriestype := :surface
     colorbar --> false
     label --> false
-    alpha --> 0.8
+    alpha := 0.5
 
     u = range(0, 2π, length = 30)  # Angular parameter (around cylinder)
     h = range(0, height, length = 30)  # Height parameter (up the cylinder)
@@ -194,10 +201,11 @@ PlotCircle(cylinder::Cylinder) = PlotCircle(
 )
 
 
-
 @recipe function plot_circle(c::PlotCircle)
     seriestype := :path
     alpha --> 0.8
+    color --> :blue
+    linewidth --> 2
 
     u = range(0, 2π, length = 30)
 
