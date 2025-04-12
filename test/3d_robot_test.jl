@@ -1,4 +1,5 @@
-using Plots
+using GatekeeperFormationFlight
+using StaticArrays
 
 @testset "GatekeeperFormationFlight.jl - 3D Robot Test" begin
 
