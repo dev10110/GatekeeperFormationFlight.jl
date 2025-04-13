@@ -39,7 +39,7 @@ prob = Dubins3DRRTProblem(domain, turning_radius, obstacles)
 nodes = [Node(SVector(1.0, 1.0, 1.0, 0.0, 0.0, 0.0))]
 
 # Run the RRT* algorithm with 400 iterations
-nodes = rrt_star(prob, nodes, 200)
+nodes = rrt_star(prob, nodes, 400)
 
 # Define goal state and find path to it
 goal = SVector(70.0, 70.0, 70.0, 0.0, 0.0, 0.0)
@@ -162,7 +162,7 @@ end
 
 # Plot the obstacles as circles in 2D projection
 for i in eachindex(obstacles)
-    plot!(PlotCircle(obstacles[i]), label = false, color = :red)
+    plot!(PlotCircle(obstacles[i]), label = false, color = :black, linewidth = 2)
 end
 
 # Combine all subplots into a single figure with custom layout
