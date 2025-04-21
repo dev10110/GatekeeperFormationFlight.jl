@@ -388,9 +388,6 @@ function update_committed_affect!(integrator)
 
     # grab the reference traj, offsets
     prob = params[1]
-    committed_trajectory = params[2]
-
-    #     println("** Update committed called at t=$(time) **")
 
     # construct a new candidate trajectory from the current state
     candidate_trajectory = construct_candidate_trajectory(time, state, prob)

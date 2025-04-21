@@ -52,7 +52,10 @@ struct Cardioid{F} <: AbstractWez
     Rmin::F
     Rmax::F
 end
+Cardioid(x, y, Rmin, Rmax) = Cardioid(promote(x, y, Rmin, Rmax)...)
 Cardioid(x::F, y::F) where {F} = Cardioid(x, y, zero(F), convert(F, 0.15))
+
+
 
 
 function _cardioid(θ, λ, ξ, Rmin, Rmax)
@@ -118,6 +121,7 @@ struct CircularWez{F} <: AbstractWez
     y::F
     R::F
 end
+CircularWez(x, y, R) = CircularWez(promote(x, y, R)...)
 CircularWez(x::F, y::F) where {F} = CircularWez(x, y, convert(F, 0.15))
 
 function wez_polar(θ, c::CircularWez, r::Robot)
@@ -165,6 +169,7 @@ struct Cbez{F} <: AbstractWez
     R::F
     t::F
 end
+Cbez(x, y, ψ, μ, ā, v, R, t) = Cbez(promote(x, y, ψ, μ, ā, v, R, t)...)
 
 Cbez(x, y, ψ) = Cbez(
     x,
