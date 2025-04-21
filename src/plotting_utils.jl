@@ -53,9 +53,10 @@ using Dubins
 
     # plot the robot
     for robot in robots
-        # color = is_colliding(wezes, robot) ? :red : :green
+        color = is_colliding(wezes, robot) ? :red : :green
         # plot!(robot; color = color)
         @series begin
+            color --> color
             robot
         end
     end

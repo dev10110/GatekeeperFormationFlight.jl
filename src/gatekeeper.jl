@@ -92,34 +92,6 @@ function dubins_path_sample_many_with_endpoint(path::DubinsPath, step_size::Floa
     return EDUBOK, configurations
 end
 
-
-# # collects all the relevant functions to solve for candidate and backup trajectories
-# function path_is_collision_free(path::DubinsPath, wezes, step_size=0.001)
-
-#     # sample points
-#     errcode, samples = dubins_path_sample_many_with_endpoint(path, step_size)
-#     @assert errcode == EDUBOK  #"Dubins Errcode: $(errcode)"
-
-#     for p in samples
-
-#         robot = Robot(p...)
-#         if is_colliding(wezes, robot)
-#             return false
-#         end
-#     end
-#     return true
-# end
-
-# function path_is_collision_free(paths::Vector{DubinsPath}, wezes, step_size=0.001)
-#     for p in paths
-#         if !path_is_collision_free(p, wezes, step_size)
-#             return false
-#         end
-#     end
-#     return true
-# end
-
-
 """
     construct_reconnection_sites(reference_path::Vector{DubinsPath}, reconnection_step_size=0.01)
 
