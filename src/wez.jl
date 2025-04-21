@@ -173,8 +173,8 @@ Cbez(x, y, ψ) = Cbez(
     0.9,  # μ
     0.25, # ā
     1.0,  # v
-    π / 2,  # R
-    π / 2,   # t
+    0.1,  # R
+    0.1,   # t
 )
 
 function wez_coordinates(λ, cbez::Cbez, robot::Robot)
@@ -232,6 +232,15 @@ function collision_distance(cbez::Cbez, robot::Robot)
     d = norm((@SVector [robot.x, robot.y]) - p_prime)
 
     return d - d_prime
+end
+
+function minimum_distance(c::Cbez, p::SVector{2})
+    # get the maximum radius of the Cbez
+    max_r = c.R * c.μ + c.v * c.t
+    # get the distance to the center of the Cbez
+    d = sqrt((c.x - p[1])^2 + (c.y - p[2])^2)
+    # return the distance to the Cbez
+    return d - max_r
 end
 
 

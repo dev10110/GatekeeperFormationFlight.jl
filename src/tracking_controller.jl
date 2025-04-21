@@ -160,3 +160,23 @@ function get_reference_state_and_input(ref_path, time, offset)
     return SVector(ox, oy, ψ), input
 
 end
+
+"""
+    get_reference_state(path::Vector{DubinsPath}, time, offset)
+
+get the `x_d` to follow a `path` at some `time`, with a given `offset`.
+"""
+function get_reference_state(path::Vector{DubinsPath}, time, offset)
+    state, _ = get_reference_state_and_input(path, time, offset)
+    return state
+end
+"""
+    get_reference_state(path::Vector{DubinsPath}, time)
+
+get the `x_d` to follow a `path` at some `time`.
+"""
+function get_reference_state(path::Vector{DubinsPath}, time)
+    
+    state, _ = get_reference_state_and_input(path, time)
+    return state
+end

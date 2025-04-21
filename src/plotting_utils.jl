@@ -3,24 +3,53 @@
 using RecipesBase
 using Dubins
 
-@recipe function plot_scenario(
-    wezes::VW,
-    robots::Vector{Robot};
-    draw_bbox = true,
-) where {W<:AbstractWez,VW<:AbstractVector{W}}
+@userplot PlotScenario
 
-    # if draw_bbox
-    #     # plot the bounding box
-    #     plot!([0, 1, 1, 0, 0], [0, 0, 1, 1, 0], label = false, color = :black)
-    #     plot!(xlims = (-0.4, 1.4), ylims = (-0.1, 1.1))
-    # end
+@recipe function plot_scenario(h::PlotScenario, title=nothing)
 
-    # # plot the wezes
-    # for wez in wezes, robot in robots
-    #     @series begin
-    #         (wez, robot)
-    #     end
-    # end
+    # check inputs
+    if length(h.args) != 2 || !(typeof(h.args[1]) <: AbstractVector) || !(eltype(h.args[1]) <: AbstractWez)  || !(typeof(h.args[2]) <: AbstractVector) || !(eltype(h.args[2]) <: Robot)
+        error("plot_scenario(wezes, robots) should be given two vectors, one of type abstract wez, and one of type robot.  Got: $(typeof(h.args))")
+    end
+
+    # extract the wezes and robots from the plot scenario
+    wezes = h.args[1];
+    robots = h.args[2];
+
+    # extract the title
+    if isnothing(title)
+        # get the minimum collision distance
+        mind = Inf
+        for r in robots, w in wezes
+            d = collision_distance(w, r)
+            mind = min(mind, d)
+        end
+
+        title = "Min Wez Distance: $(round(mind; digits=2))"
+        title_color = mind <= 0 ? :red : :black
+    else
+        title_color = :black
+    end
+
+    # plot the bounding box
+    @series begin
+        label --> false
+        color --> :black
+        marker --> false
+        aspect_ratio --> :equal
+        title := title
+        plot_titlefontcolor --> title_color
+        xlims --> (-0.4, 1.4)
+        ylims --> (-0.1, 1.1)
+        [0, 1, 1, 0, 0], [0, 0, 1, 1, 0]
+    end
+
+    # plot the wezes
+    for wez in wezes, robot in robots
+        @series begin
+            (wez, robot)
+        end
+    end
 
     # plot the robot
     for robot in robots
@@ -30,26 +59,6 @@ using Dubins
             robot
         end
     end
-
-    # if isnothing(title)
-    #     # get the minimum collision distance
-    #     mind = Inf
-    #     for r in robots, w in wezes
-    #         d = collision_distance(w, r)
-    #         mind = min(mind, d)
-    #     end
-    #     plot!(title = "Min Wez Distance: $(round(mind; digits=2))")
-
-    #     if mind <= 0
-    #         plot!(titlefont = font(:red))
-    #     else
-    #         plot!(titlefont = font(:black))
-    #     end
-    # else
-    #     plot!(title = title)
-    # end
-
-    # plot!()
 
 end
 
