@@ -18,8 +18,8 @@ construct a `GatekeeperProblem`. The arguments are:
 - integration_max_step_size = 0.05,   # max integration step size in nominal tracking
 - switch_step_size = 0.05             # resolution used to decrease switch time
 """
-@kwdef struct GatekeeperProblem{TW,TR,TO,TF}
-    wezes::TW                            # list of wezes
+@kwdef struct GatekeeperProblem{TO,TR,TO,TF}
+    obstacles::TW                            # list of obstacles
     reference_path::TR                   # path of the leader
     offset::TO = SVector(0.0, 0.0, 0.0)  # desired offset from the leaders path
     turning_radius::TF = 0.1             # max turning radius of a robot

@@ -4,6 +4,8 @@ using RecipesBase
 
 abstract type AbstractObstacle end
 
+abstract type AbstractStaticObstacle <: AbstractObstacle end
+
 """
     is_colliding(obstacle::AbstractObstacle, robot::Robot, tolerance)
     is_colliding(obstacles::Vector{AbstractObstacle}, robot::Robot, tolerance)
@@ -24,14 +26,18 @@ function collision_distance end
 """
 Check if a 3D point is within a distance tol of an obstacle
 """
-function is_colliding(obstacle::O, v::SVector{3,F}, tol = 0.0) where {O<:AbstractObstacle,F}
+function is_colliding(
+    obstacle::O,
+    v::SVector{3,F},
+    tol = 0.0,
+) where {O<:AbstractStaticObstacle,F}
     return collision_distance(obstacle, v) <= tol
 end
 
 """
 Check if a Robot3 is within a distance tol of an obstacle
 """
-function is_colliding(obstacle::O, r::Robot3, tol = 0.0) where {O<:AbstractObstacle}
+function is_colliding(obstacle::O, r::Robot3, tol = 0.0) where {O<:AbstractStaticObstacle}
     return is_colliding(obstacle, r.pos, tol)
 end
 
