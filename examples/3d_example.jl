@@ -45,6 +45,7 @@ nodes = rrt_star(prob, nodes, 400)
 goal = SVector(70.0, 70.0, 70.0, 0.0, 0.0, 0.0)
 success, waypoints = get_best_path(prob, nodes, goal)
 
+
 # Ensure a valid path was found
 @assert success
 
@@ -52,8 +53,8 @@ success, waypoints = get_best_path(prob, nodes, goal)
 path = []
 waypoints = reduce(hcat, waypoints)'  # Convert to matrix with points × 6 dimensions
 
-# @show size(waypoints)
-# @show waypoints
+@show size(waypoints)
+@show waypoints
 
 # Initialize the main 3D plot
 p1 = plot(robot)
@@ -76,6 +77,8 @@ for i = 2:size(waypoints)[1]
     push!(path, loc_path)
 end
 
+reference_path = []
+
 # Plot the smooth path segments
 for i in eachindex(path)
     segment_matrix = reduce(hcat, path[i])'
@@ -88,6 +91,27 @@ for i in eachindex(path)
         color = :red,
         linewidth = 2,
     )
+    @show size(segment_matrix)
+    push!(reference_path, segment_matrix)
+end
+
+# (N, 5) -> should add roll dimension ?
+ref_matrix = reduce(vcat, reference_path)
+
+gatekeeper_problem = GatekeeperProblem3D(;
+    obstacles = obstacles,
+    reference_path = ref_matrix,
+    offsets = [SVector(-3.0, -5.0, 0.0), SVector(-3.0, 5.0, 0.0)],
+    turning_radius = turning_radius,
+    pitch_limits = (deg2rad(-10), deg2rad(15)),
+)
+
+# Compute the nominal trajectories for the gatekeeper problem
+nominal_trajectories =
+    GatekeeperFormationFlight.compute_nominal_trajectories(gatekeeper_problem)
+
+for nom in nominal_trajectories
+    plot!(nom[:, 1], nom[:, 2], nom[:, 3], label = false, color = :blue)
 end
 
 # Plot the 3D obstacles
@@ -121,6 +145,10 @@ for i in eachindex(path)
         color = :red,
         linewidth = 2,
     )
+end
+
+for nom in nominal_trajectories
+    plot!(nom[:, 1], nom[:, 2], nom[:, 3], label = false, color = :blue)
 end
 
 for i in eachindex(obstacles)
@@ -160,6 +188,10 @@ for i in eachindex(path)
     )
 end
 
+for nom in nominal_trajectories
+    plot!(nom[:, 1], nom[:, 2], label = false, color = :blue)
+end
+
 # Plot the obstacles as circles in 2D projection
 for i in eachindex(obstacles)
     plot!(PlotCircle(obstacles[i]), label = false, color = :black, linewidth = 2)
@@ -170,6 +202,7 @@ end
 lay = @layout [a{0.7w} [b{0.5h}; c{0.5h}]]
 
 p = plot(p1, p2, p3, layout = lay, size = (1200, 800))
+p[:plot_title] = "3D Dubins RRT* Path Planning w/Follower Trajectories"
 
 # Display the final visualization
 display(p)

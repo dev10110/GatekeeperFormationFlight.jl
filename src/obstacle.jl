@@ -7,16 +7,16 @@ abstract type AbstractObstacle end
 abstract type AbstractStaticObstacle <: AbstractObstacle end
 
 """
-    is_colliding(obstacle::AbstractObstacle, robot::Robot, tolerance)
-    is_colliding(obstacles::Vector{AbstractObstacle}, robot::Robot, tolerance)
+    is_colliding(obstacle::AbstractStaticObstacle, robot::Robot, tolerance)
+    is_colliding(obstacles::Vector{AbstractStaticObstacle}, robot::Robot, tolerance)
 
 returns 'collision_distance(obstacle, robot) <= tolerance'
 """
 function is_colliding end
 
 """
-    collision_distance(obstacle::AbstractObstacle, robot::Robot)
-    collision_distance(obstacles::Vector{AbstractObstacle}, robot::Robot)
+    collision_distance(obstacle::AbstractStaticObstacle, robot::Robot)
+    collision_distance(obstacles::Vector{AbstractStaticObstacle}, robot::Robot)
 
 returns the distance to collision for this robot to the obstacle. Positive if safe.
 """
@@ -48,7 +48,7 @@ function is_colliding(
     obstacles::Vector{O},
     v::SVector{3,F},
     tol = 0.0,
-) where {O<:AbstractObstacle,F}
+) where {O<:AbstractStaticObstacle,F}
     return any(obs -> is_colliding(obs, v, tol), obstacles)
 end
 
@@ -59,7 +59,7 @@ function is_colliding(
     obstacles::Vector{O},
     r::Robot3,
     tol = 0.0,
-) where {O<:AbstractObstacle}
+) where {O<:AbstractStaticObstacle}
     return is_colliding(obstacles, r.pos, tol)
 end
 
@@ -67,15 +67,15 @@ function is_colliding(
     obstacles::Vector{O},
     v::Vector{F},
     tol = 0.0,
-) where {O<:AbstractObstacle,F}
+) where {O<:AbstractStaticObstacle,F}
     @assert length(v) >= 3
 
     return is_colliding(obstacles, SVector{3,F}(v[1:3]...), tol)
 end
 
 """
-    collision_distance(obstacle::AbstractObstacle, robot::Robot)
-    collision_distance(obstacles::Vector{AbstractObstacle}, robot::Robot)
+    collision_distance(obstacle::AbstractStaticObstacle, robot::Robot)
+    collision_distance(obstacles::Vector{AbstractStaticObstacle}, robot::Robot)
 end
 """
 
@@ -83,7 +83,7 @@ end
 
 
 """
-    collision_distance(obstacle::AbstractObstacle, robot::Robot)
+    collision_distance(obstacle::AbstractStaticObstacle, robot::Robot)
 """
 
 ###############################################################
@@ -94,7 +94,7 @@ end
 
 Constructs a static spherical obstacle
 """
-struct Sphere{F} <: AbstractObstacle
+struct Sphere{F} <: AbstractStaticObstacle
     pos::SVector{3,F}
     R::F
 end
@@ -122,7 +122,7 @@ end
 
 Constructs a static vertical cylindrical obstacle, with origin O and radius R
 """
-struct Cylinder{F} <: AbstractObstacle
+struct Cylinder{F} <: AbstractStaticObstacle where {F<:Real}
     center::SVector{3,F}
     radius::F
 end

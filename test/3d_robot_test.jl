@@ -6,7 +6,7 @@ using StaticArrays
     # Create a sample robot in 3D space
 
     robot = Robot3(SVector(1.0, 2.0, 3.0), SVector(0.1, 0.2, 0.3))
-    @test robot.pos == SVector(1.0, 2.0, 3.0)
+    @test robot.pos == @SVector [1.0, 2.0, 3.0]
     @test robot.rot == SVector(0.1, 0.2, 0.3)
 
     # Test the SVector conversion
@@ -18,10 +18,16 @@ using StaticArrays
         [Sphere(0.5, 0.5, 0.5, 0.1), Sphere(1.5, 1.5, 1.5, 0.2), Sphere(2.5, 2.5, 2.5, 0.3)]
 
     # Create a 3D RRT Problem
-    problem = Dubins3DRRTProblem(obstacles)
+    domain = (
+        SVector(0.0, 0.0, 0.0, -1.0 * π, deg2rad(-10), deg2rad(-5)),
+        SVector(10.0, 10.0, 10.0, 1.0 * π, deg2rad(15), deg2rad(5)),
+    )
+    turning_radius = 10.0  # Minimum turning radius for the Dubins vehicle
+
+    problem = Dubins3DRRTProblem(domain, turning_radius, obstacles)
 
     # Use the robot position as the start point
-    nodes = [@SVector robot.pos]
+    nodes = [Node(SVector(robot))]
 
     nodes = rrt_star(problem, nodes, 5)
 end

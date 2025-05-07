@@ -5,10 +5,24 @@ using Test
 
 @testset "GatekeeperFormationFlight" begin
 
-    # 3D Tests
-    include("3d_robot_test.jl")
-    include("3d_collision_check.jl")
 
-    include("collision_check.jl")
-    include("full_test.jl")
+    @testset "2D Tests" begin
+        @testset "2D Gatekeeper" begin
+            include("test_2d_gatekeeper.jl")
+        end
+    end
+
+    @testset "3D Tests" begin
+        @testset "#d Robot Test" begin
+            include("3d_robot_test.jl")
+        end
+
+        @testset "3D Collision Check" begin
+            include("3d_collision_check.jl")
+        end
+
+        @testset "3D Nominal Trajectories" begin
+            include("3d_nominal_trajectories.jl")
+        end
+    end
 end

@@ -1,4 +1,5 @@
 using StaticArrays, LinearAlgebra
+using RecipesBase
 
 """
     Robot(x, y, z, yaw, pitch, roll)

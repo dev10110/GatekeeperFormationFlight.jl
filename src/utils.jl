@@ -57,7 +57,14 @@ get the sign of the ω for the `index`-th subpart of a `DubinsPath`
 function get_ω_sign(path::DubinsPath, index)
     path_type = path.path_type
 
-    segment_type = Dubins.DIRDATA[path_type][index]
+    # @todo "this errors when using custom Dubins, not when using the original Dubins impl"
+    segment_type = nothing
+    try
+        segment_type = Dubins.DIRDATA[Int(path_type)][index]
+    catch
+        segment_type = Dubins.DIRDATA[path_type][index]
+    end
+    # segment_type = Dubins.DIRDATA[Int(path_type)][index]
 
     if segment_type == Dubins.:L_SEG
         return 1

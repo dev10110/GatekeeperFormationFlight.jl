@@ -2,7 +2,7 @@
 
 julia_version = "1.11.4"
 manifest_format = "2.0"
-project_hash = "d40994896f6743ec53fe413ddb08bc183f337577"
+project_hash = "e1e507a11c3b432d45c6cb1058217e550eaede75"
 
 [[deps.Artifacts]]
 uuid = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
@@ -21,6 +21,14 @@ version = "1.1.1+0"
 deps = ["Printf"]
 uuid = "ade2ca70-3891-5945-98fb-dc099432e06a"
 version = "1.11.0"
+
+[[deps.Dubins]]
+deps = ["Logging", "LoggingExtras", "StaticArrays"]
+git-tree-sha1 = "2be566cc849d6707587ab203f1e7015b2ed92a08"
+repo-rev = "master"
+repo-url = "https://github.com/dev10110/Dubins.jl.git"
+uuid = "c4b27c1d-289f-5655-aa69-f096df7d9e2b"
+version = "1.2.1"
 
 [[deps.Dubins3D]]
 deps = ["Printf", "Test"]
@@ -45,6 +53,12 @@ version = "1.11.0"
 [[deps.Logging]]
 uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
 version = "1.11.0"
+
+[[deps.LoggingExtras]]
+deps = ["Dates", "Logging"]
+git-tree-sha1 = "f02b56007b064fbfddb4c9cd60161b6dd0f40df3"
+uuid = "e6f89c97-d47a-5376-807f-9c37f3926c36"
+version = "1.1.0"
 
 [[deps.Markdown]]
 deps = ["Base64"]

@@ -3,7 +3,7 @@
 using StaticArrays, LinearAlgebra
 using RecipesBase
 
-abstract type AbstractWez end
+abstract type AbstractWez <: AbstractObstacle end
 
 """
     is_colliding(wez::AbstractWez, robot::Robot, tol)
@@ -239,6 +239,20 @@ end
 ### Collision Checking ######################################
 #############################################################
 
+function is_colliding(c::W, x::AbstractVector{F}, tol = 0) where {W<:AbstractWez,F}
+    r = Robot(x)
+    return is_colliding(c, r, tol)
+end
+
+function is_colliding(
+    vc::VW,
+    x::AbstractVector{F},
+    tol = 0,
+) where {W<:AbstractWez,VW<:AbstractVector{W},F}
+    r = Robot(x)
+    return is_colliding(vc, r, tol)
+end
+
 function is_colliding(c::W, r::Robot, tol = 0) where {W<:AbstractWez}
     return collision_distance(c, r) <= tol
 end
@@ -261,13 +275,34 @@ function is_colliding(
     return false
 end
 
+function is_colliding(
+    ws::VW,
+    x::SVector{3,F},
+    tol = 0,
+) where {W<:AbstractWez,VW<:AbstractVector{W},F}
+    r = Robot(x)
+    return is_colliding(ws, r, tol)
+end
+
 function collision_distance(ws::VW, r::Robot) where {W<:AbstractWez,VW<:AbstractVector{W}}
+    if length(ws) == 0
+        return Inf
+    end
+
     return minimum(collision_distance(w, r) for w in ws)
 end
 
 function collision_distance(c::W, x::SVector{3,F}) where {W<:AbstractWez,F}
     r = Robot(x)
     return collision_distance(c, r)
+end
+
+function collision_distance(
+    ws::VW,
+    x::AbstractVector{F},
+) where {W<:AbstractWez,VW<:AbstractVector{W},F}
+    r = Robot(x)
+    return collision_distance(ws, r)
 end
 
 
