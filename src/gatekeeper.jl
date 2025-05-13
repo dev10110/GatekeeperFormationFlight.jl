@@ -131,13 +131,15 @@ Class to contain the coefficients used in the general case for gatekeeper
 - reconnection_step_size = 0.1,       # resolution used for checking reconnection point
 - collision_check_step_size = 0.01,   # resolution used for checking collision along a path
 - integration_max_step_size = 0.05,   # max integration step size in nominal tracking
+- integration_step_size = 0.001,      # default integration step size 
 - switch_step_size = 0.05             # resolution used to decrease switch time
 """
 @kwdef struct GatekeeperCoefficients{TF<:Real}
     max_Ts_horizon::TF = 1.0             # maximum switching time
     reconnection_step_size::TF = 0.1     # resolution used for checking reconnection point
     collision_check_step_size::TF = 0.01   # resolution used for checking collision along a path
-    integration_max_step_size::TF = 0.05   # max integration step size in nominal tracking
+    integration_max_step_size::TF = 0.05   # max integration step size 
+    integration_step_size::TF = 0.001    # integration step size 
     switch_step_size::TF = 0.05            # resolution used to decrease switch time
 end
 
@@ -164,6 +166,7 @@ end
 The high level driver function to simulate the closed look gatekeeper algorithm
 """
 function simulate_closed_loop_gatekeeper(gk::GatekeeperInstance, initial_state, timespan)
+    @info "Simulating closed-loop gatekeeper algorithm from x0 = $(initial_state)"
     if is_colliding(
         get_obstacles(gk.problem),
         get_reference_path(gk.problem),
@@ -175,7 +178,12 @@ function simulate_closed_loop_gatekeeper(gk::GatekeeperInstance, initial_state, 
     first_candidate_trajectory =
         construct_candidate_trajectory(gk, initial_state, timespan[1]) # Initial composite trajectory
 
-    params = [gk, first_candidate_trajectory]
+    if isnothing(first_candidate_trajectory)
+        @error "No candidate trajectory found. Cannot proceed with simulation."
+        return nothing
+    end
+
+    params = (gk, first_candidate_trajectory)
 
     odeproblem =
         ODEProblem(closed_loop_tracking_composite!, Vector(initial_state), timespan, params)
@@ -187,7 +195,8 @@ function simulate_closed_loop_gatekeeper(gk::GatekeeperInstance, initial_state, 
         odeproblem,
         Tsit5(),
         dtmax = gk.coefficients.integration_max_step_size,
-        dt = 0.001,
+        # dt = 0.001,
+        dt = gk.coefficients.integration_step_size,
         callback = update_committed_callback,
     )
 
@@ -222,15 +231,16 @@ function update_committed_affect!(integrator)
     params = integrator.p
 
     # Extract the parameters
-    gk = params[1]
-    committed_traj = params[2]
+    # gk = params[1]
+    # committed_traj = params[2]
+    gk, committed_traj = params
 
     # Attempt to construct a new candidate trajectory
-    candidate_trajectory = construct_candidate_trajectory(gk, state, time)
+    @time candidate_trajectory = construct_candidate_trajectory(gk, state, time)
 
     # If candidate trajectory is constructed successfully, update
     if !isnothing(candidate_trajectory)
-        integrator.p[2] = candidate_trajectory
+        integrator.p = (gk, candidate_trajectory)
     end
 
     return
@@ -327,7 +337,8 @@ function construct_candidate_trajectory(
 )::Union{CompositeTrajectory,Nothing} where {ST,F<:Real} # State Type
 
     # Construct the nominal trajectory
-    nominal_solution = construct_candidate_nominal_trajectory(gk, state, time)
+    tn = @elapsed nominal_solution = construct_candidate_nominal_trajectory(gk, state, time)
+    println("Nominal trajectory construction time: $tn seconds\n")
 
     if isnothing(nominal_solution)
         return nothing
@@ -343,10 +354,12 @@ function construct_candidate_trajectory(
     )
 
         # Get the state at the switch time
-        nominal_end_state = nominal_solution(switch_time)
+        nominal_end_state = nominal_solution(switch_time) # returns a vector
 
         # construct a backup from this switch time
-        backup_path = construct_candidate_backup_trajectory(gk, Vector(nominal_end_state))
+        tb = @elapsed backup_path =
+            construct_candidate_backup_trajectory(gk, nominal_end_state)
+        println("Backup path construction time: $tb seconds\n")
 
         # If found a backup path successfully, return it
         if !isnothing(backup_path)
@@ -360,6 +373,7 @@ function construct_candidate_trajectory(
 end
 
 function termination_condition(state, time, integrator)
+    # return 1.0
     return collision_distance(get_obstacles(integrator.p.problem), state)
     # return (dist < 1e-2) ? 0.0 : dist # address some numerical precision issues?
 end
@@ -370,7 +384,7 @@ function construct_candidate_nominal_trajectory(
     time::F,
 ) where {ST,F<:Real} # State Type
     # Check if initial condition is safe
-    if is_colliding(get_obstacles(gk.problem), state)
+    if is_colliding(get_obstacles(gk.problem), state, 0.0)
         @warn "robot is in collision. Collision distance: $(collision_distance(get_obstacles(gk.problem), state))"
         return nothing
     end
@@ -380,6 +394,8 @@ function construct_candidate_nominal_trajectory(
     params = gk
 
     # construct the ode problem
+    # TODO Use Svector & no ! / return diff version
+    # odeproblem = ODEProblem(closed_loop_tracking_nominal!, Vector(state), tspan, params)
     odeproblem = ODEProblem(closed_loop_tracking_nominal!, Vector(state), tspan, params)
 
     termination_callback = ContinuousCallback(termination_condition, terminate!)
@@ -388,7 +404,7 @@ function construct_candidate_nominal_trajectory(
         odeproblem,
         Tsit5(),
         dtmax = gk.coefficients.integration_max_step_size,
-        dt = 0.001,
+        dt = gk.coefficients.integration_step_size,
         callback = termination_callback,
     )
 
@@ -425,7 +441,7 @@ function construct_candidate_backup_trajectory(
         if !is_colliding(
             get_obstacles(gk.problem),
             connection_path,
-            gk.coefficients.collision_check_step_size,
+            gk.coefficients.collision_check_step_size * 2.0,
         )
             # Construct the path 
             path_idx, connection_pt = reconnection_sites[connection_idx]
@@ -451,8 +467,10 @@ function construct_reconnection_paths(
     from_state,
 )::Vector{Any} where {ST}
     # Get the shortest path from the initial state to each reconnection site as a vector
-    connection_paths =
-        map(site -> shortest_path(gk.problem, from_state, site[2]), reconnection_sites)
+    connection_paths = filter(
+        !isnothing,
+        map(site -> shortest_path(gk.problem, from_state, site[2]), reconnection_sites),
+    )
 
     return connection_paths
 end

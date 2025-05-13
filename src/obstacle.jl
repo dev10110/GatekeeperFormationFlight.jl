@@ -26,30 +26,65 @@ function collision_distance end
 """
 Check if a 3D point is within a distance tol of an obstacle
 """
+# function is_colliding(
+#     obstacle::O,
+#     v::SVector{3,F},
+#     tol = 0.0,
+# ) where {O<:AbstractStaticObstacle,F<:Real}
+#     return collision_distance(obstacle, v) <= tol
+# end
+
+# function is_colliding(
+#     obstacle::O,
+#     V::VF,
+#     tol = 0.0,
+# ) where {O<:AbstractStaticObstacle,F<:Real,VF<:AbstractVector{F}}
+#     @assert length(V) >= 3
+# end
+
+# function is_colliding(
+#     obstacles::VO,
+#     V::AbstractVector{F},
+#     tol = 0.0,
+# ) where {O<:AbstractStaticObstacle,VO<:AbstractVector{O},F<:Real}
+#     @assert length(V) >= 3
+#     return any(obs -> is_colliding(obs, V, tol), obstacles)
+# end
+"""
+    is_colliding(obstacle::AbstractStaticObstacle, v::SVector{3,F}, tol = 0.0)
+
+Check if one single point is withing a distance tol of one single obstacle
+"""
 function is_colliding(
     obstacle::O,
-    v::SVector{3,F},
-    tol = 0.0,
-) where {O<:AbstractStaticObstacle,F}
+    v::VF,
+    tol = 1e-3,
+) where {O<:AbstractStaticObstacle,F<:Real,VF<:AbstractVector{F}}
+    @assert length(v) >= 3
     return collision_distance(obstacle, v) <= tol
 end
+
+"""
+    is_colliding(obstacles::Vector{AbstractStaticObstacle}, v::SVector{3,F}, tol = 0.0)
+
+Check if a 3D point is within a distance tol of any obstacle in the vector obstacles
+"""
+function is_colliding(
+    obstacles::Vector{O},
+    v::VF,
+    tol = 0.0,
+) where {O<:AbstractStaticObstacle,F<:Real,VF<:AbstractVector{F}}
+    return any(obs -> is_colliding(obs, v, tol), obstacles)
+end
+
+
+
 
 """
 Check if a Robot3 is within a distance tol of an obstacle
 """
 function is_colliding(obstacle::O, r::Robot3, tol = 0.0) where {O<:AbstractStaticObstacle}
     return is_colliding(obstacle, r.pos, tol)
-end
-
-"""
-Check if a 3D point is within a distance tol of any obstacle in the vector obstacles
-"""
-function is_colliding(
-    obstacles::Vector{O},
-    v::SVector{3,F},
-    tol = 0.0,
-) where {O<:AbstractStaticObstacle,F}
-    return any(obs -> is_colliding(obs, v, tol), obstacles)
 end
 
 """
@@ -63,28 +98,21 @@ function is_colliding(
     return is_colliding(obstacles, r.pos, tol)
 end
 
-function is_colliding(
-    obstacles::Vector{O},
-    v::Vector{F},
+
+"""
+    collision_distance(obstacles::Vector{AbstractStaticObstacle}, x::AbstractVector{F}, tol = 0.0)
+
+Returns the minimum distance to collision from one point to a vector of obstacles
+"""
+function collision_distance(
+    obstacles::VO,
+    x::VF,
     tol = 0.0,
-) where {O<:AbstractStaticObstacle,F}
-    @assert length(v) >= 3
-
-    return is_colliding(obstacles, SVector{3,F}(v[1:3]...), tol)
+) where {O<:AbstractStaticObstacle,VO<:AbstractVector{O},F<:Real,VF<:AbstractVector{F}}
+    @assert length(x) >= 3
+    return minimum(o -> collision_distance(o, x), obstacles)
 end
 
-"""
-    collision_distance(obstacle::AbstractStaticObstacle, robot::Robot)
-    collision_distance(obstacles::Vector{AbstractStaticObstacle}, robot::Robot)
-end
-"""
-
-
-
-
-"""
-    collision_distance(obstacle::AbstractStaticObstacle, robot::Robot)
-"""
 
 ###############################################################
 ### Spherical #################################################
@@ -131,20 +159,12 @@ Cylinder(x::F, y::F, r::F) where {F} = Cylinder(SVector{3,F}([x, y, 0.0]), r)
 
 """
     collision_distance(center::Cylinder, x::SVector{3,F})
+
+Returns the distance to collision from a point x to an infinite height cylinder
 """
-function collision_distance(c::Cylinder, x::SVector{3,F}) where {F}
-    # get the distance to the vertical line that defines the cylinder
-    # dot product with the normal vector
-
-    # Infinite vertical cylinder...
-    diff = c.center[1:2] - x[1:2]
+function collision_distance(c::Cylinder, x::VF) where {F<:Real,VF<:AbstractVector{F}}
+    diff = @SVector F[c.center[1]-x[1], c.center[2]-x[2]]
     return norm(diff) - c.radius
-
-    # n = @SVector [0.0, 0.0, 1.0]
-    # ||(center - x) - ((center - x) dot n) * n||
-
-    # vec = diff - (diff' * n) * n
-    # return norm(vec) - c.radius
 end
 
 

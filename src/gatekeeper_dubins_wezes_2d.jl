@@ -82,10 +82,12 @@ function apply_input_bounds(
     inputs::SVector{2,F}, # inputs
 )::SVector{2,F} where {F<:Real}
     # maximum velocity over minimum turning radius
-    ω_max = gk.v_max / gk.turning_radius
+    # ω_max = gk.v_max / gk.turning_radius
 
     # Apply input bounds
     v = clamp(inputs[1], gk.v_min, gk.v_max)
+
+    ω_max = v / gk.turning_radius
     ω = clamp(inputs[2], -ω_max, ω_max)
 
     return SVector(v, ω)

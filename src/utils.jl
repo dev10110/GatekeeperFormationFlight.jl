@@ -75,3 +75,56 @@ function get_ω_sign(path::DubinsPath, index)
         return -1
     end
 end
+
+"""
+    get_transformation_matrix(yaw, pitch, roll)
+
+returns the transformation matrix for a given yaw, pitch, roll
+from the body frame to the inertial frame
+"""
+# function get_transformation_matrix(yaw, pitch, roll)
+#     # COORDINATE SYSTEM CONVENTION:
+#     # - Yaw: rotation around Z-axis (positive = right/clockwise from above)
+#     # - Pitch: rotation around Y-axis (positive = nose up)
+#     # - Roll: rotation around X-axis (positive = right wing down)
+
+#     yaw_transform = [
+#         cos(yaw) -sin(yaw) 0
+#         sin(yaw) cos(yaw) 0
+#         0 0 1
+#     ]
+#     pitch_transform = [
+#         cos(pitch) 0 sin(pitch)
+#         0 1 0
+#         -sin(pitch) 0 cos(pitch)
+#     ]
+#     roll_transform = [
+#         1 0 0
+#         0 cos(roll) -sin(roll)
+#         0 sin(roll) cos(roll)
+#     ]
+#     # Note: The order of transformations matters.
+#     # Combine the transformations
+#     # transformation_matrix = roll_transform * pitch_transform * yaw_transform
+#     # transformation_matrix = yaw_transform * pitch_transform * roll_transform
+#     transformation_matrix = roll_transform * pitch_transform * yaw_transform
+#     return transformation_matrix
+# end
+
+function get_transformation_matrix(
+    yaw::F,
+    pitch::F,
+    roll::F,
+)::SMatrix{3,3,F} where {F<:Real}
+    # Precompute trigonometric values
+    ca, sa = cos(yaw), sin(yaw)
+    cb, sb = cos(pitch), sin(pitch)
+    cy, sy = cos(roll), sin(roll)
+
+    # Directly compute the combined matrix elements
+    return @SMatrix F[
+        ca*cb ca*sb*sy-sa*cy ca*sb*cy+sa*sy
+        sa*cb sa*sb*sy+ca*cy sa*sb*cy-ca*sy
+        -sb cb*sy cb*cy
+    ]
+end

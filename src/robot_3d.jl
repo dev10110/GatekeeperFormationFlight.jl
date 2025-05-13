@@ -18,6 +18,21 @@ function Robot3(pos::VF, rot::VF) where {F,VF<:AbstractVector{F}}
     return Robot3(SVector{3,F}(pos), SVector{3,F}(rot))
 end
 
+function Robot3(pose::SVector{5,F}) where {F}
+    return Robot3(
+        SVector{3,F}(pose[1], pose[2], pose[3]),
+        SVector{3,F}(pose[4], pose[5], 0.0),
+    )
+end
+
+function Robot3(pose::VF) where {F,VF<:AbstractVector{F}}
+    @assert length(pose) == 5
+    return Robot3(
+        SVector{3,F}(pose[1], pose[2], pose[3]),
+        SVector{3,F}(pose[4], pose[5], 0.0),
+    )
+end
+
 function StaticArrays.SVector(r::Robot3{F}) where {F}
     return SVector{6,F}(r.pos..., r.rot...)
 end

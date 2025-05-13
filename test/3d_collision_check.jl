@@ -63,11 +63,15 @@ using StaticArrays, Dubins3D
     end
 
     # Path that grazes the edge of the cylinder
-    grazing_start = [4.0, 5.0, 5.0, 0.0, 0.0]
-    grazing_goal = [6.0, 5.0, 5.0, 0.0, 0.0]
+    grazing_start = @SVector Float64[4.0, 5.0, 5.0, 0.0, 0.0]
+    grazing_goal = @SVector Float64[6.0, 5.0, 5.0, 0.0, 0.0]
 
-    grazing_maneuver =
-        DubinsManeuver3D(grazing_start, grazing_goal, 1.0, [deg2rad(-15), deg2rad(20)])
+    grazing_maneuver = DubinsManeuver3D(
+        grazing_start,
+        grazing_goal,
+        1.0,
+        @SVector Float64[deg2rad(-15), deg2rad(20)]
+    )
     grazing_samples = compute_sampling(grazing_maneuver; numberOfSamples = 10)
 
     @test any(
@@ -78,10 +82,15 @@ end
 
 @testset "GatekeeperFormationFlight.jl - 3D Path Collision Check" begin
 
-    start_pos = [0.0, 0.0, 0.0, 0.0, 0.0]
-    goal_pos = [2.0, 0.0, 0.0, 0.0, 0.0]
+    start_pos = @SVector [0.0, 0.0, 0.0, 0.0, 0.0]
+    goal_pos = @SVector [2.0, 0.0, 0.0, 0.0, 0.0]
 
-    maneuver = DubinsManeuver3D(start_pos, goal_pos, 1.0, [deg2rad(-15), deg2rad(20)])
+    maneuver = DubinsManeuver3D(
+        start_pos,
+        goal_pos,
+        1.0,
+        @SVector Float64[deg2rad(-15), deg2rad(20)]
+    )
 
     @test abs(maneuver.length - 2.0) <= 1e-6
 

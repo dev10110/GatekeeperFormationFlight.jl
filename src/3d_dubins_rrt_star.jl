@@ -10,22 +10,24 @@ using Dubins3D
 Get the distance between two states connected by a 3D dubins path
 """
 function dubins_distance_3d(
-    q1,
-    q2,
-    turning_radius = 40,
-    pitch_angle_constraints = [-15, 20],
+    q1::SVector{5,Float64},
+    q2::SVector{5,Float64};
+    turning_radius::Float64 = 40,
+    pitch_angle_constraints::SVector{2,Float64},# = SVector{2,Float64}(-15, 20),
 )
     return DubinsManeuver3D(q1, q2, turning_radius, pitch_angle_constraints).length
 end
 
 function safe_dubins_maneuver_3d(
-    q1,
-    q2,
-    turning_radius,
-    pitch_angle_constraints = [-15, 20],
+    from_vec::SVector{5,Float64},
+    to_vec::SVector{5,Float64},
+    turning_radius::Float64,
+    pitch_angle_constraints::SVector{2,Float64},# = SVector{2,Float64}(-15, 20),
+    domain::Tuple{SVector{5,Float64},SVector{5,Float64}},
 )
-    from_vec = Vector(q1[1:5])
-    to_vec = Vector(q2[1:5])
+    if !in_domain(domain, from_vec) || !in_domain(domain, to_vec)
+        return nothing
+    end
 
     try
         return DubinsManeuver3D(from_vec, to_vec, turning_radius, pitch_angle_constraints)
@@ -34,11 +36,19 @@ function safe_dubins_maneuver_3d(
             # Handle the case where the distance is very small
             perturbation = 1e-8 * randn(5)
             perturbed_to = from_vec + perturbation
-            safe_dubins_maneuver_3d(
+
+            if !in_domain(domain, perturbed_to)
+                # Clamp to domain
+                perturbed_to =
+                    SVector{5,Float64}(max.(min.(perturbed_to, domain[2]), domain[1]))
+            end
+
+            return safe_dubins_maneuver_3d(
                 from_vec,
                 perturbed_to,
                 turning_radius,
                 pitch_angle_constraints,
+                domain,
             )
         else
             rethrow(e)
@@ -51,8 +61,15 @@ end
 
 returns true if the state q is within the domain defined by the tuple domain
 """
-function in_domain(domain::Tuple{SVector{6,F},SVector{6,F}}, q::Vector{F}) where {F}
-    return all(q .>= domain[1][1:5]) && all(q .<= domain[2][1:5])
+function in_domain(
+    domain::Tuple{SVector{5,Float64},SVector{5,Float64}},
+    q::SVector{5,Float64},
+)::Bool
+    id = all(q .>= domain[1]) && all(q .<= domain[2])
+    if !id
+        @debug "State $q is out of domain $domain"
+    end
+    return id
 end
 
 
@@ -83,17 +100,25 @@ obstacles = [Sphere(rand(), rand(), rand(), rand()) for i=1:10]
 rrt_problem = Dubins3DRRTProblem(domain, turning_radius, obstacles)
 ```
 """
-struct Dubins3DRRTProblem{F,O} <: RRTStar.AbstractProblem{SVector{6,F}}
-    domain::Tuple{SVector{6,F},SVector{6,F}}
-    turning_radius::F
-    obstacles::Vector{O}
+struct Dubins3DRRTProblem{F,VO} <: RRTStar.AbstractProblem{SVector{5,F}}
+    domain::Tuple{SVector{5,Float64},SVector{5,Float64}}
+    turning_radius::Float64
+    obstacles::VO
+end
+
+function Dubins3DRRTProblem(
+    domain::Tuple{SVector{5,Float64},SVector{5,Float64}},
+    turning_radius::Float64,
+    obstacles::VO,
+) where {O<:AbstractObstacle,VO<:AbstractVector{O}}
+    return Dubins3DRRTProblem{Float64,VO}(domain, turning_radius, obstacles)
 end
 
 
 # Creates a default domain, with abstract obstacles as an argument
 function Dubins3DRRTProblem(obstacles::VO) where {O<:AbstractObstacle,VO<:AbstractVector{O}}
-    min_domain = SVector{6}(0.0, 0.0, 0.0, -1.0 * π, deg2rad(-15), deg2rad(-10))
-    max_domain = SVector{6}(100.0, 100.0, 100.0, 1.0 * π, deg2rad(20), deg2rad(10))
+    min_domain = @SVector Float64[0.0, 0.0, 0.0, -1.0*π, deg2rad(-15)]
+    max_domain = @SVector Float64[100.0, 100.0, 100.0, 1.0*π, deg2rad(20)]
     turning_radius = 10.0
 
     return Dubins3DRRTProblem((min_domain, max_domain), turning_radius, obstacles)
@@ -102,13 +127,11 @@ end
 """
 Returns a random vector lying in the problem domain
 """
-function sample_domain(P::Dubins3DRRTProblem)
+function sample_domain(P::Dubins3DRRTProblem)::SVector{5,Float64}
     @debug "Sample Domain"
 
-    v = @SVector rand(6)
-    sampled = P.domain[1] + (P.domain[2] - P.domain[1]) .* v
-
-    return sampled
+    v = @SVector rand(5)
+    return SVector{5,Float64}(P.domain[1] + (P.domain[2] - P.domain[1]) .* v)
 end
 
 """
@@ -116,7 +139,7 @@ end
 
 returns a random state within the problem domain
 """
-function RRTStar.sample_free(problem::Dubins3DRRTProblem)
+function RRTStar.sample_free(problem::Dubins3DRRTProblem)::SVector{5,Float64}
     @debug "sample_free"
 
     q = sample_domain(problem)
@@ -171,25 +194,25 @@ end
 
 returns the state by traveling up to "max_travel_dist" along the dubins path between x_nearest and x_rand
 """
-function RRTStar.steer(P::Dubins3DRRTProblem, x_nearest, x_rand; max_travel_dist = 20.0)
+function RRTStar.steer(
+    P::Dubins3DRRTProblem,
+    x_nearest::SVector{5,Float64},
+    x_rand::SVector{5,Float64};
+    max_travel_dist = 20.0,
+)::SVector{5,Float64}
     @debug "steer"
 
-    pitchlims = [P.domain[1][5], P.domain[2][5]]
+    pitchlims = @SVector Float64[P.domain[1][5], P.domain[2][5]]
 
-    maneuver = safe_dubins_maneuver_3d(x_nearest, x_rand, P.turning_radius, pitchlims)
+    maneuver =
+        safe_dubins_maneuver_3d(x_nearest, x_rand, P.turning_radius, pitchlims, P.domain)
 
     num_samples = max(10, floor(Int, maneuver.length / 0.1))
     sampled_path = compute_sampling(maneuver; numberOfSamples = num_samples)
 
     # in the case of a very short path
     if max_travel_dist >= maneuver.length
-        steer_point = sampled_path[end]
-
-        # wrap angles
-        steer_point[4] = wrapToPi(steer_point[4])
-        steer_point[5] = wrapToPi(steer_point[5])
-
-        return SVector{6,Float64}(steer_point..., 0.0)
+        return sampled_path[end] # steer_point is an SVector
     end
 
     # Walk along the path, until distance traveled is greater than max_travel_dist
@@ -202,13 +225,7 @@ function RRTStar.steer(P::Dubins3DRRTProblem, x_nearest, x_rand; max_travel_dist
         x_idx += 1
     end
 
-    steer_point = sampled_path[x_idx]
-
-    # wrap angles
-    steer_point[4] = wrapToPi(steer_point[4])
-    steer_point[5] = wrapToPi(steer_point[5])
-
-    return SVector{6,Float64}(steer_point..., 0.0)
+    return sampled_path[x_idx]
 end
 
 
@@ -217,18 +234,20 @@ function RRTStar.collision_free(
     x_nearest,
     x_new;
     step_size = 0.05,
-)
+)::Bool
     @debug "collision_free"
 
     maneuver = safe_dubins_maneuver_3d(
         x_nearest,
         x_new,
         problem.turning_radius,
-        [problem.domain[1][5], problem.domain[2][5]],
+        SVector{2,Float64}(problem.domain[1][5], problem.domain[2][5]),
+        problem.domain,
     )
 
     # Check if the maneuver is valid
     if isnothing(maneuver)
+        @debug "Maneuver is invalid"
         return false
     end
 
@@ -236,13 +255,12 @@ function RRTStar.collision_free(
     num_samples = max(50, floor(Int, maneuver.length / step_size))
     sampled_path = compute_sampling(maneuver; numberOfSamples = num_samples)
 
-    for i in eachindex(sampled_path)
-        sampled_path[i][4] = wrapToPi(sampled_path[i][4])
-        sampled_path[i][5] = wrapToPi(sampled_path[i][5])
-    end
-
     in_collision = any(x -> is_colliding(problem.obstacles, x[1:3]), sampled_path)
     path_in_domain = all(x -> in_domain(problem.domain, x), sampled_path)
+
+    @debug "in_collision = $in_collision"
+    @debug "path_in_domain = $path_in_domain"
+    @debug "Returning collision free: $(!in_collision && path_in_domain)"
 
     return !in_collision && path_in_domain
 end
@@ -252,14 +270,19 @@ end
 
 returns the length of the dubins path from x_near to x_new
 """
-function RRTStar.path_cost(problem::Dubins3DRRTProblem, x_near, x_new)
+function RRTStar.path_cost(
+    problem::Dubins3DRRTProblem,
+    x_near::SVector{5,Float64},
+    x_new::SVector{5,Float64},
+)::Float64
     @debug "path_cost between $x_near and $x_new"
 
     maneuver = safe_dubins_maneuver_3d(
         x_near,
         x_new,
         problem.turning_radius,
-        [problem.domain[1][5], problem.domain[2][5]],
+        SVector{2,Float64}(problem.domain[1][5], problem.domain[2][5]),
+        problem.domain,
     )
 
     if isnothing(maneuver)

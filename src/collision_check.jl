@@ -1,7 +1,7 @@
 # Copyright (c) 2025 Devansh R Agrawal - All rights reserved.
 
 using LinearAlgebra, StaticArrays
-using Dubins
+using Dubins, Dubins3D
 using RecipesBase
 
 abstract type CollisionRegion{F} end
@@ -238,6 +238,86 @@ function is_colliding(
             return true
         end
     end
+    return false
+end
+
+"""
+    is_colliding(obs::O, path::DubinsManeuver3D, tol = 1e-5)
+
+Checks if an abstract static obstacle is colliding with a dubins maneuver in 3D
+"""
+function is_colliding(
+    obs::O,
+    path::DubinsManeuver3D,
+    tol = 1e-5,
+) where {O<:AbstractStaticObstacle}
+    @show "here"
+    # idea - for t in range 0, path.length, step = tol) sample that individual point into an already allocated SVEctor
+    # then check if the point is colliding with the obstacle
+    # if so return
+    # else continue
+    for t in range(0, path.length, step = tol)
+        pose_t::SVector{5,Float64} = Dubins3D.compute_at_len(path, t)
+
+        if is_colliding(obs, pose_t, 0.0)
+            return true
+        end
+    end
+    return false
+end
+
+"""
+    is_colliding(obs::Cylinder, path::DubinsManeuver3D, tol = 1e-5)
+
+Checks if a cylinder is colliding with a 3D dubins maneuver
+"""
+function is_colliding(obs::Cylinder, path::DubinsManeuver3D, tol = 1e-5)
+    # for now... naieve solution
+    N = Int(ceil(path.length / tol))
+
+    samples = compute_sampling(path; numberOfSamples = N)
+    return any(s -> is_colliding(obs, s), samples)
+end
+
+"""
+    is_colliding(obs::VO, path::DubinsPath, tol = 1e-5)
+
+Checks if a vector of abstract static obstacles is colliding with a dubins maneuver in 3D
+
+THIS ONLY WORKS FOR CYLINDERS TBH
+"""
+function is_colliding(
+    obs::Vector{O},
+    path::DubinsManeuver3D,
+    tol = 1e-5,
+) where {O<:AbstractStaticObstacle}
+    min_dists = [norm(o.center[1:2] - path.qi[1:2]) for o in obs]
+    idxs = sortperm(min_dists)
+
+    for i in idxs
+        if is_colliding(obs[i], path, tol)
+            return true
+        end
+    end
+
+    return false
+end
+
+"""
+    is_colliding(obs::VO, path::DubinsManeuver3D, tol = 1e-5)
+Checks if a vector of abstract static obstacles is colliding with a vector of paths
+"""
+function is_colliding(
+    obs::VO,
+    paths::AbstractVector{DubinsManeuver3D},
+    tol = 1e-5,
+) where {O<:AbstractStaticObstacle,VO<:AbstractVector{O}}
+    for p in paths
+        if is_colliding(obs, p, tol)
+            return true
+        end
+    end
+
     return false
 end
 

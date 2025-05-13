@@ -9,12 +9,11 @@ export Robot, Cardioid, CircularWez, Cbez
 export GatekeeperInstance, GatekeeperCoefficients
 
 # Export Types of Dubins Problems
-export GKDubinsWezes2D
+export GKDubinsWezes2D, GKDubinsObs3D
 
 # 3D Exports
 export Robot3, Sphere, Cylinder, PlotCircle
 export Dubins3DRRTProblem
-export GatekeeperProblem3D
 
 export wez_coordinates
 export is_colliding, collision_distance, minimum_distance
@@ -49,6 +48,9 @@ include("2d_tracking_controller.jl")
 include("gatekeeper_dubins_wezes_2d.jl")
 
 # 3D GATEKEEPER IMPLEMENTATION
-include("gatekeeper_3d.jl")
+include("gatekeeper_dubins_obs_3d.jl")
+
+# Include the Dubins3D tracking controller but don't export it
+include("dubins_3d_tracking_controller.jl")
 
 end
