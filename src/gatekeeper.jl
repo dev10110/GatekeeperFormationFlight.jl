@@ -121,8 +121,6 @@ function get_remaining_nominal(::GatekeeperProblem, path_idx::Int64, connection_
 end
 
 
-
-
 """
     GatekeeperCoefficients(kwargs...)
 
