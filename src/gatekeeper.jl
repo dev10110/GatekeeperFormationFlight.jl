@@ -1,7 +1,6 @@
 using StaticArrays, LinearAlgebra
 using OrdinaryDiffEq, DiffEqCallbacks
 
-
 """
     GatekeeperProblem
 
@@ -141,12 +140,19 @@ Class to contain the coefficients used in the general case for gatekeeper
     switch_step_size::TF = 0.05            # resolution used to decrease switch time
 end
 
+
+"""
+    AbstractGatekeeperInstance
+Reaquired to posess the fields problem and coefficients
+"""
+abstract type AbstractGatekeeperInstance end
+
 """
     GatekeeperInstance
 A struct to contain the problem and coefficients for the gatekeeper instance.
 Functions that operate on this struct implement the high level gatekeeper algorithm
 """
-struct GatekeeperInstance
+struct GatekeeperInstance <: AbstractGatekeeperInstance
     problem::GatekeeperProblem
     coefficients::GatekeeperCoefficients{TF} where {TF<:Real}
 end
@@ -159,11 +165,15 @@ end
 
 
 """
-    simulate_closed_loop_gatekeeper(gk::GatekeeperInstance, initial_state, timespan)
+    simulate_closed_loop_gatekeeper(gk::AbstractGatekeeperInstance, initial_state, timespan)
 
 The high level driver function to simulate the closed look gatekeeper algorithm
 """
-function simulate_closed_loop_gatekeeper(gk::GatekeeperInstance, initial_state, timespan)
+function simulate_closed_loop_gatekeeper(
+    gk::AbstractGatekeeperInstance,
+    initial_state,
+    timespan,
+)
     @info "Simulating closed-loop gatekeeper algorithm from x0 = $(initial_state)"
     if is_colliding(
         get_obstacles(gk.problem),
@@ -216,7 +226,7 @@ function time_choice_gatekeeper(integrator)
     state = integrator.u
     params = integrator.p
 
-    gk::GatekeeperInstance = params[1]
+    gk::AbstractGatekeeperInstance = params[1]
     committed_traj = params[2]
 
     return max(time, committed_traj.switch_time) + gk.coefficients.switch_step_size
@@ -272,12 +282,12 @@ function closed_loop_tracking_composite!(D, state, params, time::F) where {F<:Re
 end
 
 """
-    closed_loop_tracking_nominal!(D, state, gk::GatekeeperInstance, time)
+    closed_loop_tracking_nominal!(D, state, gk::AbstractGatekeeperInstance, time)
 
 Defines the closed loop dynamics for tracking a nominal trajectory. Called by closed_loop_tracking_composite!
 and also by the ODE solver
 """
-function closed_loop_tracking_nominal!(D, state, gk::GatekeeperInstance, time)
+function closed_loop_tracking_nominal!(D, state, gk::AbstractGatekeeperInstance, time)
     # Determine the desired state and input
     state_desired, input_desired = get_reference_state_and_input(
         gk.problem,
@@ -321,7 +331,7 @@ end
 ####################################
 
 """
-    construct_candidate_trajectory(gk::GatekeeperInstance, state::ST, time::Float64)
+    construct_candidate_trajectory(gk::AbstractGatekeeperInstance, state::ST, time::Float64)
 
 Attempts to construct a candidate trajectory for the gatekeeper algorithm.
 Returns a `CompositeTrajectory` if successful, or `nothing` if not.
@@ -329,7 +339,7 @@ Returns a `CompositeTrajectory` if successful, or `nothing` if not.
 This is the lowest level of abstraction that is not necessarily implementation specific
 """
 function construct_candidate_trajectory(
-    gk::GatekeeperInstance,
+    gk::AbstractGatekeeperInstance,
     state::ST,
     time::F, # time
 )::Union{CompositeTrajectory,Nothing} where {ST,F<:Real} # State Type
@@ -374,7 +384,7 @@ function termination_condition(state, time, integrator)
 end
 
 function construct_candidate_nominal_trajectory(
-    gk::GatekeeperInstance,
+    gk::AbstractGatekeeperInstance,
     state::ST,
     time::F,
 ) where {ST,F<:Real} # State Type
@@ -407,12 +417,12 @@ function construct_candidate_nominal_trajectory(
 end
 
 """
-    construct_candidate_backup_trajectory(gk::GatekeeperInstance, state::ST)
+    construct_candidate_backup_trajectory(gk::AbstractGatekeeperInstance, state::ST)
 
 From some initial state, attempts to construct the best backup trajectory
 """
 function construct_candidate_backup_trajectory(
-    gk::GatekeeperInstance,
+    gk::AbstractGatekeeperInstance,
     state::ST,
 )::Union{Any,Nothing} where {ST}
 
@@ -431,8 +441,6 @@ function construct_candidate_backup_trajectory(
         # Get the path
         connection_path = connection_paths[connection_idx]
 
-        # Would need an implementation of is_colliding for paths
-        # For now assuming a check that works with the available methods
         if !is_colliding(
             get_obstacles(gk.problem),
             connection_path,
@@ -457,7 +465,7 @@ end
 Given a set of reconnection sites, and an initial state, return a list of reconnection paths
 """
 function construct_reconnection_paths(
-    gk::GatekeeperInstance,
+    gk::AbstractGatekeeperInstance,
     reconnection_sites::Vector{Tuple{Int64,ST}},
     from_state,
 )::Vector{Any} where {ST}

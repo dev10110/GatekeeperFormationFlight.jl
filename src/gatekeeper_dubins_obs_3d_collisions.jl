@@ -20,7 +20,7 @@ Early TSwitch plans in order of the current switch time
     EARLY_TSWITCH
 end
 
-@kwdef struct GKDubinsObs3DInterAgent{TOBS,TR,TOF,TF} <: GatekeeperProblem
+@kwdef struct GKDubinsObs3DInterAgent{TOBS,TR,TOF,TF,TAC} <: GatekeeperProblem
     obstacles::TOBS # list of obstacles
     reference_path::TR # reference trajectory of the leader
     offset::TOF = [SVector(0.0, 0.0, 0.0)] # vector of desired offsets from the leader (xyz)
@@ -30,6 +30,7 @@ end
     v_max::TF = 1.0 # maximum velocity
     agent_radius::TF = 0.5 # radius of the agents for inter-agent collision checks
     priority_type::PriorityType = PriorityType.ARBITRARY # priority type for inter-agent collision checks
+    agent_committed::TAC = []
 end
 
 function get_reference_path(gk::GKDubinsObs3DInterAgent)
@@ -41,6 +42,9 @@ function get_offset(gk::GKDubinsObs3DInterAgent)
 end
 
 function get_obstacles(gk::GKDubinsObs3DInterAgent)::AbstractVector{AbstractStaticObstacle}
+
+    # Convert the vector of agent_committed trajectories to a vector of obstacles
+
     return gk.obstacles
 end
 
