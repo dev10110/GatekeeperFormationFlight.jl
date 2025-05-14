@@ -21,10 +21,12 @@ end
 # Random.seed!(22341234)
 # Random.seed!(52341234)
 # Random.seed!(72341234)
-Random.seed!(13341234) # goated 10 obstacle seed
+# Random.seed!(13341234) # goated 10 obstacle seed
 # Random.seed!(63341234) # good seed with 4
-# Random.seed!(55551234)
-obstacles = create_random_scenario(10) #10 is good seed
+# Random.seed!(55551234) # good seed with 10
+# Random.seed!(85551234) # Cool narrow gap
+Random.seed!(22331234) # very good 25 seed, 1200 RRT* iterations!
+obstacles = create_random_scenario(25) #10 is good seed
 
 # Define initial robot configuration in 3D space
 robot = Robot3(SVector(1.0, 1.0, 1.0), SVector(0.0, 0.0, 0.0))
@@ -45,7 +47,7 @@ start_pose = @SVector [1.0, 1.0, 1.0, 0.0, 0.0]
 nodes = [Node(start_pose)]
 
 # Run the RRT* algorithm with 400 iterations
-nodes = rrt_star(prob, nodes, 400)
+nodes = rrt_star(prob, nodes, 1200)
 
 # Define goal state and find path to it
 goal = @SVector [100.0, 100.0, 70.0, 0.0, 0.0]
@@ -338,7 +340,7 @@ p[:plot_title] = "3D Dubins RRT* Path Planning w/Follower Trajectories"
 savefig(p, "3d_gatekeeper_paths.png")
 
 # Display the final visualization
-# display(p)
+display(p)
 
 @show "Starting the Animation Process"
 
@@ -411,7 +413,5 @@ anim = @animate for (idx, t) in enumerate(modified_range)
 
     plot!(legend = false, camera = (Int(floor((idx / length(modified_range)) * 70)), 30))
 end
-
-
 
 gif(anim, "3d_gatekeeper.gif")

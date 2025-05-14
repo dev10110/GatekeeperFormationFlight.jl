@@ -164,7 +164,7 @@ get the `state, input` for a reference path beyond the end of the path (t > end_
 function post_extrapolate(path::AbstractVector{DubinsManeuver3D}, time)
     end_time = sum(x -> x.length, path)
 
-    @assert time > end_time # assumes v = 1.0
+    @assert time >= end_time # assumes v = 1.0
 
     xf, yf, zf, yawf, pitchf = path[end].qf
     rollf = 0.0
@@ -195,7 +195,7 @@ function get_reference_state_and_input(
 
     if time < 0
         return pre_extrapolate(path, time)
-    elseif time > cumulative_lengths[end]
+    elseif time >= cumulative_lengths[end]
         return post_extrapolate(path, time)
     end
 
@@ -205,13 +205,21 @@ function get_reference_state_and_input(
     # find relative time in the segment
     τ = idx == 1 ? time : time - cumulative_lengths[idx-1]
 
-    # normalize time to the segment length
-    τ_fractional = τ / segment_lengths[idx]
-    state_idx = clamp(ceil(Int, τ_fractional * 1000), 1, 1000)
+    if τ == path[idx].length
+        # if τ is exactly the end of the segment, we need to go to the next segment
+        idx += 1
+        τ = 0.0
+    end
 
-    states = compute_sampling(path[idx]; numberOfSamples = 1000)
-    state = states[state_idx]
+
+    # normalize time to the segment length
+    # τ_fractional = τ / segment_lengths[idx]
+    # state_idx = clamp(ceil(Int, τ_fractional * 1000), 1, 1000)
+
+    # states = compute_sampling(path[idx]; numberOfSamples = 1000)
+    # state = states[state_idx]
     # state = states[:, state_idx]
+    state = Dubins3D.compute_at_len(path[idx], τ)
 
     # reference states
     x, y, z, yaw, pitch = state
@@ -219,12 +227,19 @@ function get_reference_state_and_input(
 
     # estimate ω by taking the difference between the current and next state yaw
     # then estimate the time step by the segment length divided by the number of samples
-    Δt = segment_lengths[idx] / 1000
+    # Δt = segment_lengths[idx] / 1000
+    Δt = 1e-3
 
     ω = 0.0
     v = 1.0
-    if state_idx < size(states, 2) - 1
-        next_state = states[:, state_idx+1]
+    # if state_idx < size(states, 2) - 1
+
+    if τ + Δt < path[idx].length
+        next_state = Dubins3D.compute_at_len(path[idx], τ + Δt)
+        Δω = next_state[4] - yaw
+        ω = Δω / Δt # needs to change by Δω over Δt
+    elseif τ + Δt >= path[idx].length && idx < length(path)
+        next_state = path[idx+1].qi
         Δω = next_state[4] - yaw
         ω = Δω / Δt # needs to change by Δω over Δt
     end

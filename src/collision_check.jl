@@ -251,7 +251,6 @@ function is_colliding(
     path::DubinsManeuver3D,
     tol = 1e-5,
 ) where {O<:AbstractStaticObstacle}
-    @show "here"
     # idea - for t in range 0, path.length, step = tol) sample that individual point into an already allocated SVEctor
     # then check if the point is colliding with the obstacle
     # if so return
@@ -271,13 +270,13 @@ end
 
 Checks if a cylinder is colliding with a 3D dubins maneuver
 """
-function is_colliding(obs::Cylinder, path::DubinsManeuver3D, tol = 1e-5)
-    # for now... naieve solution
-    N = Int(ceil(path.length / tol))
+# function is_colliding(obs::Cylinder, path::DubinsManeuver3D, tol = 1e-5)
+#     # for now... naieve solution
+#     N = Int(ceil(path.length / tol))
 
-    samples = compute_sampling(path; numberOfSamples = N)
-    return any(s -> is_colliding(obs, s), samples)
-end
+#     samples = compute_sampling(path; numberOfSamples = N)
+#     return any(s -> is_colliding(obs, s), samples)
+# end
 
 """
     is_colliding(obs::VO, path::DubinsPath, tol = 1e-5)
@@ -310,10 +309,11 @@ Checks if a vector of abstract static obstacles is colliding with a vector of pa
 function is_colliding(
     obs::VO,
     paths::AbstractVector{DubinsManeuver3D},
+    time::F,
     tol = 1e-5,
-) where {O<:AbstractStaticObstacle,VO<:AbstractVector{O}}
+) where {F<:Real,O<:AbstractObstacle,VO<:AbstractVector{O}}
     for p in paths
-        if is_colliding(obs, p, tol)
+        if is_colliding(obs, p, time, tol)
             return true
         end
     end

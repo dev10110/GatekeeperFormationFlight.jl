@@ -5,6 +5,7 @@ using RecipesBase
 abstract type AbstractObstacle end
 
 abstract type AbstractStaticObstacle <: AbstractObstacle end
+abstract type AbstractDynamicObstacle <: AbstractObstacle end
 
 """
     is_colliding(obstacle::AbstractStaticObstacle, robot::Robot, tolerance)
@@ -165,6 +166,19 @@ Returns the distance to collision from a point x to an infinite height cylinder
 function collision_distance(c::Cylinder, x::VF) where {F<:Real,VF<:AbstractVector{F}}
     diff = @SVector F[c.center[1]-x[1], c.center[2]-x[2]]
     return norm(diff) - c.radius
+end
+
+###############################################################
+### Time Varying Sphere########################################
+###############################################################
+struct TimeVaryingSphere{F} <: AbstractDynamicObstacle where {F<:Real}
+    pos_at_t::Function  # Function t::F -> SVector{3, F}
+    radius::F
+end
+
+function TimeVaryingSphere(gk_solution, radius::F)
+    pos_at_t = t -> @SVector{3, F}(gk_solution(t)[1], gk_solution(t)[2], gk_solution(t)[3])
+    return TimeVaryingSphere(pos_at_t, radius)
 end
 
 

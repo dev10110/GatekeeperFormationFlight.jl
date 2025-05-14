@@ -190,11 +190,17 @@ function construct_reconnection_sites(
 
     site_index = 1
     for (path_idx, path) in enumerate(get_reference_path(gk))
-        num_samples = ceil(Int, path.length / reconnection_step_size)
-        pts = compute_sampling(path; numberOfSamples = num_samples)
+        # num_samples = ceil(Int, path.length / reconnection_step_size)
+        # pts = compute_sampling(path; numberOfSamples = num_samples)
 
-        for p in pts
-            reconnection_sites[site_index] = (path_idx, p)
+        # for p in pts
+        #     reconnection_sites[site_index] = (path_idx, p)
+        #     site_index += 1
+        # end
+
+        for τ in range(0, path.length, step = reconnection_step_size)
+            pose_t::SVector{5,F} = Dubins3D.compute_at_len(path, τ)
+            reconnection_sites[site_index] = (path_idx, pose_t)
             site_index += 1
         end
     end

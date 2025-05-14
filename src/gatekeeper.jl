@@ -337,8 +337,7 @@ function construct_candidate_trajectory(
 )::Union{CompositeTrajectory,Nothing} where {ST,F<:Real} # State Type
 
     # Construct the nominal trajectory
-    tn = @elapsed nominal_solution = construct_candidate_nominal_trajectory(gk, state, time)
-    println("Nominal trajectory construction time: $tn seconds\n")
+    nominal_solution = construct_candidate_nominal_trajectory(gk, state, time)
 
     if isnothing(nominal_solution)
         return nothing
@@ -357,9 +356,7 @@ function construct_candidate_trajectory(
         nominal_end_state = nominal_solution(switch_time) # returns a vector
 
         # construct a backup from this switch time
-        tb = @elapsed backup_path =
-            construct_candidate_backup_trajectory(gk, nominal_end_state)
-        println("Backup path construction time: $tb seconds\n")
+        backup_path = construct_candidate_backup_trajectory(gk, nominal_end_state)
 
         # If found a backup path successfully, return it
         if !isnothing(backup_path)
