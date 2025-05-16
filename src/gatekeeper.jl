@@ -378,9 +378,7 @@ function construct_candidate_trajectory(
 end
 
 function termination_condition(state, time, integrator)
-    # return 1.0
-    return collision_distance(get_obstacles(integrator.p.problem), state)
-    # return (dist < 1e-2) ? 0.0 : dist # address some numerical precision issues?
+    return collision_distance(get_obstacles(integrator.p.problem), state, time)
 end
 
 function construct_candidate_nominal_trajectory(

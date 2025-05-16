@@ -105,16 +105,44 @@ end
 
 Returns the minimum distance to collision from one point to a vector of obstacles
 """
+# function collision_distance(
+#     obstacles::VO,
+#     x::VF,
+#     tol = 0.0,
+# ) where {O<:AbstractStaticObstacle,VO<:AbstractVector{O},F<:Real,VF<:AbstractVector{F}}
+#     @assert length(x) >= 3
+#     return minimum(o -> collision_distance(o, x), obstacles)
+# end
+
+"""
+    collision_distance(obstacle::AbstractStaticObstacle, x::AbstractVector{F}, tol, time)
+
+Adatper for when static obstacles are used in a dynamic context
+"""
+function collision_distance(
+    obstacle::O,
+    x::VF,
+    tol::Float64,
+    time::Float64,
+) where {O<:AbstractStaticObstacle,F<:Real,VF<:AbstractVector{F}}
+    @assert length(x) >= 3
+    return collision_distance(obstacle, x)
+end
+
+"""
+    collision_distance(obstacles::Vector{AbstractStaticObstacle}, x::AbstractVector{F}, tol = 0.0)
+
+Returns the minimum distance to collision from one point to a vector of obstacles
+"""
 function collision_distance(
     obstacles::VO,
     x::VF,
-    tol = 0.0,
-) where {O<:AbstractStaticObstacle,VO<:AbstractVector{O},F<:Real,VF<:AbstractVector{F}}
+    tol::Float64,
+    time::Float64,
+) where {O<:AbstractObstacle,VO<:AbstractVector{O},F<:Real,VF<:AbstractVector{F}}
     @assert length(x) >= 3
-    return minimum(o -> collision_distance(o, x), obstacles)
+    return minimum(o -> collision_distance(o, x, tol, time), obstacles)
 end
-
-
 ###############################################################
 ### Spherical #################################################
 ###############################################################
@@ -179,6 +207,14 @@ end
 function TimeVaryingSphere(gk_solution, radius::F)
     pos_at_t = t -> @SVector{3, F}(gk_solution(t)[1], gk_solution(t)[2], gk_solution(t)[3])
     return TimeVaryingSphere(pos_at_t, radius)
+end
+
+function collision_distance(
+    s::TimeVaryingSphere,
+    x::AbstractVector{F},
+    t::Float64,
+) where {F<:Real}
+    return norm(s.pos_at_t(t) - x) - s.radius
 end
 
 

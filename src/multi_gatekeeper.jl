@@ -8,7 +8,7 @@ using StaticArrays, LinearAlgebra
 
 module MultiGatekeeper
 
-export MultiGatekeeperProblem, get_single_agent_subproblem, get_collision_radius
+export MultiGatekeeperProblem, get_single_agent_subproblem
 
 
 # ========== TYPE DEFINITIONS ==========
@@ -117,21 +117,14 @@ function update_agent_committed_callback!(integrator)
     n_agents::Int = size(state, 1)
     for agent_idx = 1:n_agents
         if time >= committed_traj.switch_time[agent_idx]
-
             # If they have, then we want to update that agent's committed trajectory
             # But updating the agent's candidate effectrively updates the entire candidate
             try_update_agent_committed!(committed_traj, gk, state, agent_idx, time)
-
-            # So if we were able to successfully update the agent's trajectory, then here we commit it,
-            # and then use this updated committed trajectory for the rest of the agents
-            if !isnothing(updated_candidate)
-                committed_traj = updated_candidate
-            end
         end
     end
 
     # No matter what, the committed_trajectory is either the same or updated in the function above
-    integrator.p = (gk, committed_traj)
+    # integrator.p = (gk, committed_traj)
     return
 end
 
@@ -192,12 +185,13 @@ function try_update_agent_committed!(
     time,
 ) where {GP<:MultiGatekeeperProblem}
 
+    # Convert to a single agent problem with dynamic obstacles!
     agent_gk = GatekeeperInstance(
         get_single_agent_subproblem(gk.problem, agent_idx, committed_traj),
         gk.coefficients,
     )
 
-    # Get the agent's nominal trajectory
+    # Get the agent's nominal trajectory (until collision)
     nominal_solution =
         construct_candidate_nominal_trajectory(agent_gk, state[agent_idx], time)
 
@@ -209,7 +203,8 @@ function try_update_agent_committed!(
         step = -gk.coefficients.switch_step_size,
     )
         nominal_end_state = nominal_solution(switch_time)
-        backup_path = construct_candidate_backup_trajectory(agent_gk, nominal_end_state)
+        backup_path =
+            construct_candidate_backup_trajectory_multi(agent_gk, nominal_end_state)
 
         if !isnothing(backup_path)
             # Update the committed trajectory in place
@@ -219,162 +214,6 @@ function try_update_agent_committed!(
             return
         end
     end
-end
-
-
-function construct_candidate_backup_trajectory(
-    gk::GatekeeperInstance{GP},
-    committed_traj::CompositeTrajectory,
-    state,
-    time,
-    agent_idx::Int,
-) where {GP<:MultiGatekeeperProblem}
-
-    # Get the set of reconnection sites
-    reconnection_sites =
-        construct_reconnection_sites(gk.problem, gk.coefficients.reconnection_step_size)
-
-    # find paths
-    connection_paths =
-        construct_reconnection_paths(gk, reconnection_sites, state[agent_idx])
-
-    shortest_path = argmin(path_length(gk.problem, p) for p in connection_paths)
-
-    # Check if the path is safe, and return the first that is
-    for connection_idx = shortest_idx:length(connection_paths)
-        # Get the path
-        path_candidate = connection_paths[connection_idx]
-
-        # Check if the path collides with any static obstacles
-        if is_colliding(
-            get_obstacles(gk.problem),
-            path_candidate,
-            gk.coefficients.collision_check_step_size,
-        )
-            continue
-        end
-
-        # If the path is safe from static obstacles, we must now forward propagate the 
-        # state, using the backup trajectory, until the agent reaches the reconnection point
-        agent_backup = propagate_agent_as_backup(
-            gk,
-            committed_traj,
-            state,
-            time,
-            agent_idx,
-            path_candidate,
-        )
-    end
-end
-
-"""
-    propagate_agent_as_nominal(gk::GatekeeperInstance{GP}, committed_traj::CompositeTrajectory, state, time, agent_idx::Int)
-
-Propagates the agent's trajectory using the nominal controller, and the rest using the full
-composite trajectory tracker. 
-
-Does this until there is a collision (caused by the agent's trajectory)
-
-Returns:
-1. An ODESolution object that contains the trajectory of the system.
-"""
-function propagate_agent_as_nominal(
-    gk::GatekeeperInstance{GP},
-    committed_traj::CompositeTrajectory,
-    state,
-    time,
-    agent_idx::Int,
-) where {GP<:MultiGatekeeperProblem}
-
-    # Set up the ODE Problem
-    tspan = (time, time + gk.coefficients.max_Ts_horizon)
-    params = (gk, committed_traj)
-
-    """
-        ode_func!(D, state, params, time)
-
-    This is, unfortunately, just the same as the multi_closed_loop_tracking_composite!
-    function, but we need to define it here as a closure so that we can require it use
-    the nominal controller for the agent we are propagating
-    """
-    n_agents::Int = size(state, 1)
-    Ts = committed_traj.switch_time
-    function ode_func!(D, s, p, t::F) where {F<:Real}
-        for agent = 1:n_agents
-            # alyways use the nominal controller for the agent
-            # we are propagating
-            if t <= Ts[agent] || agent == agent_idx
-                closed_loop_tracking_nominal!(
-                    view(D, agent),
-                    s[agent],
-                    get_single_agent_subproblem(gk.problem, agent),
-                    t,
-                )
-            else
-                closed_loop_tracking_backup!(
-                    view(D, agent),
-                    get_single_agent_subproblem(gk.problem, agent),
-                    s[agent],
-                    committed_traj.backup[agent],
-                    t - Ts[agent],
-                )
-            end
-        end
-    end
-
-    """
-        termination_condition(s, t, i)
-
-    Another unforunately very similar block of code to the termination_condition function
-    But also required to be defined here as a closure so we can only consider one agent in the
-    collision checking, as well as consider itner-agent collisions
-
-    Returns the minimum distance from the agent to any static obstacles or other agent at that current timestep
-    """
-    function ode_termination_condition(s, t, i)
-        # only need to check for collisions for the agent we are propagating
-        # as the rest are following the by construction safe committed trajectory
-
-        min_dist_to_obstacle = collision_distance(get_obstacles(gk.problem), s[agent_idx])
-        min_dist_to_other_agents = minimum(
-            norm(s[agent_idx] .- s[agent]) - 2 * get_collision_radius(gk.problem) for
-            agent = 1:n_agents if agent != agent_idx
-        )
-
-        return min(dist_to_obstacles, dist_to_other_agents)
-    end
-
-    odeproblem = ODEProblem(ode_func!, state, tspan, params)
-    termination_callback = ContinuousCallback(ode_termination_condition, terminate!)
-
-    odesol = solve(
-        odeproblem,
-        Tsit5(),
-        dtmax = gk.coefficients.integration_max_step_size,
-        dt = gk.coefficients.integration_step_size,
-        callback = termination_callback,
-    )
-
-    return odesol
-end
-
-"""
-    propagate_agent_as_backup(gk::GatekeeperInstance{GP}, committed_traj::CompositeTrajectory, state, time, agent_idx::Int)
-
-Propagates the agent's trajectory using the backup controller, and the rest using the full
-composite trajectory tracker. Terminates the propagation when the agent reaches the reconnection point
-or collides
-"""
-function propagate_agent_as_backup(
-    gk::GatekeeperInstance{GP},
-    committed_traj::CompositeTrajectory,
-    state,
-    time,
-    agent_idx::Int,
-    path_candidate,
-) where {GP<:MultiGatekeeperProblem}
-    # TODO
-    return nothing
 end
 
 end # module MultiGatekeeper
