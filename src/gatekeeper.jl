@@ -142,18 +142,12 @@ end
 
 
 """
-    AbstractGatekeeperInstance
-Reaquired to posess the fields problem and coefficients
-"""
-abstract type AbstractGatekeeperInstance end
-
-"""
     GatekeeperInstance
 A struct to contain the problem and coefficients for the gatekeeper instance.
 Functions that operate on this struct implement the high level gatekeeper algorithm
 """
-struct GatekeeperInstance <: AbstractGatekeeperInstance
-    problem::GatekeeperProblem
+struct GatekeeperInstance{GP} <: GatekeeperInstance
+    problem::GP where {GP<:GatekeeperProblem}
     coefficients::GatekeeperCoefficients{TF} where {TF<:Real}
 end
 
@@ -165,12 +159,12 @@ end
 
 
 """
-    simulate_closed_loop_gatekeeper(gk::AbstractGatekeeperInstance, initial_state, timespan)
+    simulate_closed_loop_gatekeeper(gk::GatekeeperInstance{GP<:GatekeeperProblem}, initial_state, timespan)
 
 The high level driver function to simulate the closed look gatekeeper algorithm
 """
 function simulate_closed_loop_gatekeeper(
-    gk::AbstractGatekeeperInstance,
+    gk::GatekeeperInstance{GP<:GatekeeperProblem},
     initial_state,
     timespan,
 )
@@ -226,7 +220,7 @@ function time_choice_gatekeeper(integrator)
     state = integrator.u
     params = integrator.p
 
-    gk::AbstractGatekeeperInstance = params[1]
+    gk::GatekeeperInstance{GP<:GatekeeperProblem} = params[1]
     committed_traj = params[2]
 
     return max(time, committed_traj.switch_time) + gk.coefficients.switch_step_size
@@ -269,7 +263,7 @@ function closed_loop_tracking_composite!(D, state, params, time::F) where {F<:Re
     Ts = committed_traj.switch_time
 
     if time <= Ts
-        return closed_loop_tracking_nominal!(D, state, gk, time)
+        return closed_loop_tracking_nominal!(D, state, gk.problem, time)
     else
         return closed_loop_tracking_backup!(
             D,
@@ -282,24 +276,29 @@ function closed_loop_tracking_composite!(D, state, params, time::F) where {F<:Re
 end
 
 """
-    closed_loop_tracking_nominal!(D, state, gk::AbstractGatekeeperInstance, time)
+    closed_loop_tracking_nominal!(D, state, gk::GatekeeperInstance{GP<:GatekeeperProblem}, time)
 
 Defines the closed loop dynamics for tracking a nominal trajectory. Called by closed_loop_tracking_composite!
 and also by the ODE solver
 """
-function closed_loop_tracking_nominal!(D, state, gk::AbstractGatekeeperInstance, time)
+function closed_loop_tracking_nominal!(
+    D,
+    state,
+    problem::GP,
+    time,
+) where {GP<:GatekeeperProblem}
     # Determine the desired state and input
     state_desired, input_desired = get_reference_state_and_input(
-        gk.problem,
-        get_reference_path(gk.problem),
-        get_offset(gk.problem),
+        problem,
+        get_reference_path(problem),
+        get_offset(problem),
         time,
     )
 
-    inputs = tracking_controller(gk.problem, state, state_desired, input_desired)
-    inputs = apply_input_bounds(gk.problem, inputs)
+    inputs = tracking_controller(problem, state, state_desired, input_desired)
+    inputs = apply_input_bounds(problem, inputs)
 
-    state_dynamics!(gk.problem, D, state, inputs)
+    state_dynamics!(problem, D, state, inputs)
     return
 end
 
@@ -314,7 +313,8 @@ function closed_loop_tracking_backup!(
     state,
     backup_path,
     backup_time,
-)
+) where {GP<:GatekeeperProblem}
+
     state_desired, input_desired =
         get_reference_state_and_input(prob, backup_path, backup_time)
 
@@ -331,7 +331,7 @@ end
 ####################################
 
 """
-    construct_candidate_trajectory(gk::AbstractGatekeeperInstance, state::ST, time::Float64)
+    construct_candidate_trajectory(gk::GatekeeperInstance{GP<:GatekeeperProblem}, state::ST, time::Float64)
 
 Attempts to construct a candidate trajectory for the gatekeeper algorithm.
 Returns a `CompositeTrajectory` if successful, or `nothing` if not.
@@ -339,10 +339,10 @@ Returns a `CompositeTrajectory` if successful, or `nothing` if not.
 This is the lowest level of abstraction that is not necessarily implementation specific
 """
 function construct_candidate_trajectory(
-    gk::AbstractGatekeeperInstance,
+    gk::GatekeeperInstance{GP},
     state::ST,
     time::F, # time
-)::Union{CompositeTrajectory,Nothing} where {ST,F<:Real} # State Type
+)::Union{CompositeTrajectory,Nothing} where {ST,F<:Real,GP<:GatekeeperProblem} # State Type
 
     # Construct the nominal trajectory
     nominal_solution = construct_candidate_nominal_trajectory(gk, state, time)
@@ -384,7 +384,7 @@ function termination_condition(state, time, integrator)
 end
 
 function construct_candidate_nominal_trajectory(
-    gk::AbstractGatekeeperInstance,
+    gk::GatekeeperInstance{GP},
     state::ST,
     time::F,
 ) where {ST,F<:Real} # State Type
@@ -417,14 +417,14 @@ function construct_candidate_nominal_trajectory(
 end
 
 """
-    construct_candidate_backup_trajectory(gk::AbstractGatekeeperInstance, state::ST)
+    construct_candidate_backup_trajectory(gk::GatekeeperInstance{GP<:GatekeeperProblem}, state::ST)
 
 From some initial state, attempts to construct the best backup trajectory
 """
 function construct_candidate_backup_trajectory(
-    gk::AbstractGatekeeperInstance,
+    gk::GatekeeperInstance{GP},
     state::ST,
-)::Union{Any,Nothing} where {ST}
+)::Union{Any,Nothing} where {ST,GP<:GatekeeperProblem}
 
     # Get the set of reconnection sites
     reconnection_sites =
@@ -465,10 +465,10 @@ end
 Given a set of reconnection sites, and an initial state, return a list of reconnection paths
 """
 function construct_reconnection_paths(
-    gk::AbstractGatekeeperInstance,
+    gk::GatekeeperInstance{GP},
     reconnection_sites::Vector{Tuple{Int64,ST}},
     from_state,
-)::Vector{Any} where {ST}
+)::Vector{Any} where {ST,GP<:GatekeeperProblem}
     # Get the shortest path from the initial state to each reconnection site as a vector
     connection_paths = filter(
         !isnothing,
