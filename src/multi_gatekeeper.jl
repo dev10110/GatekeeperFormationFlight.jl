@@ -16,7 +16,7 @@ abstract type MultiGatekeeperProblem <: GatekeeperProblem end
 function get_single_agent_subproblem(
     gk::MultiGatekeeperProblem,
     agent_idx::Int,
-)::GatkeeperProblem end
+)::GatekeeperProblem end
 
 """
     get_single_agent_subproblem(gk::MultiGatekeeperProblem, agent_idx::Int, committed_traj::CompositeTrajectory)
@@ -47,14 +47,28 @@ function simulate_closed_loop_gatekeeper(
     timespan,
 ) where {GP<:MultiGatekeeperProblem}
     n_agents::Int = size(initial_state, 1)
+    state_dim::Int = size(initial_state, 2)
     @info "Simulating closed-loop gatekeeper algorithm for $(n_agents) agents"
 
-    first_candidate_trajectory =
-        construct_candidate_trajectory(gk, initial_state, timespan[1])
-
-    if isnothing(first_candidate_trajectory)
-        @error "No candidate trajectory found. Cannot proceed with simulation."
-        return nothing
+    # Build candidate trajectory incrementally, agent by agent
+    # Each agent greedily finds a candidate trajectory that is collision free
+    candidate_trajectory = CompositeTrajectory(
+        Vector{Any}(nothing, n_agents),  # or use the specific type if known
+        Vector{Any}(nothing, n_agents),
+        Vector{Float64}(nothing, n_agents),
+    )
+    for agent_idx = 1:n_agents
+        try_update_agent_committed!(
+            candidate_trajectory,
+            gk,
+            initial_state,
+            agent_idx,
+            timespan[1],
+        )
+        if isnothing(candidate_trajectory.backup[agent_idx])
+            @error "No candidate trajectory found for agent $(agent_idx). Cannot proceed with simulation."
+            return nothing
+        end
     end
 
     params = (gk, first_candidate_trajectory)
@@ -82,6 +96,7 @@ end
 ####################################
 # MAIN ODE SOLVER CALLBACKS
 ####################################
+
 
 """
     min_switch_time_gatekeeper(integrator)

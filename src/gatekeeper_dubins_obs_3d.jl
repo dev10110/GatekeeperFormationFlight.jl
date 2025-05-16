@@ -25,7 +25,7 @@ end
 function get_offset(gk::GKDubinsObs3D)
     return gk.offset
 end
-function get_obstacles(gk::GKDubinsObs3D)::AbstractVector{AbstractStaticObstacle}
+function get_obstacles(gk::GKDubinsObs3D)::AbstractVector{AbstractObstacle}
     return gk.obstacles
 end
 
