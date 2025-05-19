@@ -1,5 +1,16 @@
+module Gatekeeper
+
+export GatekeeperProblem,
+    GatekeeperCoefficients,
+    GatekeeperInstance,
+    CompositeTrajectory,
+    simulate_closed_loop_gatekeeper
+
+
 using StaticArrays, LinearAlgebra
 using OrdinaryDiffEq, DiffEqCallbacks
+
+using ..Obstacles
 
 """
     GatekeeperProblem
@@ -101,7 +112,7 @@ end
 along a reference path, find the reconnection sites, aka the set of points where a trajectory could possible reconnect
 
 Returns a Vector of points along the reference path containing the index of the refernece path where the reconnection
-coudl happen, and teh state
+could happen, and teh state
 """
 function construct_reconnection_sites(
     ::GatekeeperProblem,
@@ -146,9 +157,9 @@ end
 A struct to contain the problem and coefficients for the gatekeeper instance.
 Functions that operate on this struct implement the high level gatekeeper algorithm
 """
-struct GatekeeperInstance{GP} <: GatekeeperInstance
-    problem::GP where {GP<:GatekeeperProblem}
-    coefficients::GatekeeperCoefficients{TF} where {TF<:Real}
+struct GatekeeperInstance{GP<:GatekeeperProblem}
+    problem::GP
+    coefficients::GatekeeperCoefficients
 end
 
 struct CompositeTrajectory{TN,TB,TS<:Real}
@@ -164,14 +175,15 @@ end
 The high level driver function to simulate the closed look gatekeeper algorithm
 """
 function simulate_closed_loop_gatekeeper(
-    gk::GatekeeperInstance{GP<:GatekeeperProblem},
+    gk::GatekeeperInstance{GP},
     initial_state,
     timespan,
-)
+) where {GP<:GatekeeperProblem}
     @info "Simulating closed-loop gatekeeper algorithm from x0 = $(initial_state)"
     if is_colliding(
         get_obstacles(gk.problem),
         get_reference_path(gk.problem),
+        0.0,
         gk.coefficients.collision_check_step_size,
     )
         @warn "Reference path is not safe !!"
@@ -220,7 +232,7 @@ function time_choice_gatekeeper(integrator)
     state = integrator.u
     params = integrator.p
 
-    gk::GatekeeperInstance{GP<:GatekeeperProblem} = params[1]
+    gk = params[1]::GatekeeperInstance
     committed_traj = params[2]
 
     return max(time, committed_traj.switch_time) + gk.coefficients.switch_step_size
@@ -302,6 +314,10 @@ function closed_loop_tracking_nominal!(
     return
 end
 
+function closed_loop_tracking_nominal!(D, state, gk_instance::GatekeeperInstance, time)
+    closed_loop_tracking_nominal!(D, state, gk_instance.problem, time)
+end
+
 """
     closed_loop_tracking_backup!(D, prob::GatekeeperProblem, state, backup_path, backup_time)
 
@@ -309,12 +325,11 @@ Defines the closed loop dynamics for tracking a backup trajectory. Called by clo
 """
 function closed_loop_tracking_backup!(
     D,
-    prob::GatekeeperProblem,
+    prob::GP,
     state,
     backup_path,
     backup_time,
 ) where {GP<:GatekeeperProblem}
-
     state_desired, input_desired =
         get_reference_state_and_input(prob, backup_path, backup_time)
 
@@ -339,13 +354,14 @@ Returns a `CompositeTrajectory` if successful, or `nothing` if not.
 This is the lowest level of abstraction that is not necessarily implementation specific
 """
 function construct_candidate_trajectory(
-    gk::GatekeeperInstance{GP},
+    gk::GatekeeperInstance,
     state::ST,
     time::F, # time
-)::Union{CompositeTrajectory,Nothing} where {ST,F<:Real,GP<:GatekeeperProblem} # State Type
+)::Union{CompositeTrajectory,Nothing} where {ST,F<:Real} # State Type
 
     # Construct the nominal trajectory
-    nominal_solution = construct_candidate_nominal_trajectory(gk, state, time)
+    @show "nominal trajectory"
+    @time nominal_solution = construct_candidate_nominal_trajectory(gk, state, time)
 
     if isnothing(nominal_solution)
         return nothing
@@ -364,7 +380,8 @@ function construct_candidate_trajectory(
         nominal_end_state = nominal_solution(switch_time) # returns a vector
 
         # construct a backup from this switch time
-        backup_path = construct_candidate_backup_trajectory(gk, nominal_end_state)
+        @show "backup trajectory"
+        @time backup_path = construct_candidate_backup_trajectory(gk, nominal_end_state)
 
         # If found a backup path successfully, return it
         if !isnothing(backup_path)
@@ -382,12 +399,12 @@ function termination_condition(state, time, integrator)
 end
 
 function construct_candidate_nominal_trajectory(
-    gk::GatekeeperInstance{GP},
+    gk::GatekeeperInstance,
     state::ST,
     time::F,
 ) where {ST,F<:Real} # State Type
     # Check if initial condition is safe
-    if is_colliding(get_obstacles(gk.problem), state, 0.0)
+    if is_colliding(get_obstacles(gk.problem), state, time, 0.0)
         @warn "robot is in collision. Collision distance: $(collision_distance(get_obstacles(gk.problem), state))"
         return nothing
     end
@@ -442,6 +459,7 @@ function construct_candidate_backup_trajectory(
         if !is_colliding(
             get_obstacles(gk.problem),
             connection_path,
+            0.0,
             gk.coefficients.collision_check_step_size * 2.0,
         )
             # Construct the path 
@@ -475,3 +493,5 @@ function construct_reconnection_paths(
 
     return connection_paths
 end
+
+end # module Gatekeeper

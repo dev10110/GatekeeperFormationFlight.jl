@@ -1,6 +1,6 @@
 # Copyright (c) 2025 Devansh R Agrawal - All rights reserved.
 
-using Dubins, LinearAlgebra
+using Dubins, LinearAlgebra, StaticArrays
 
 """
     wrapToPi(θ)

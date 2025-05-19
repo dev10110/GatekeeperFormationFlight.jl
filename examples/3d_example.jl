@@ -1,6 +1,8 @@
-using GatekeeperFormationFlight
 using Plots, LinearAlgebra, StaticArrays, Random
 using Dubins3D
+
+using GatekeeperFormationFlight
+using GatekeeperFormationFlight.Gatekeeper: get_reference_state_and_input
 
 # Use PyPlot backend for better 3D visualization
 pyplot()
@@ -149,7 +151,7 @@ coeffs = GatekeeperCoefficients(
     max_Ts_horizon = 50.0,
     integration_max_step_size = 0.1,
     integration_step_size = 0.01,
-    collision_check_step_size = 0.01,
+    collision_check_step_size = 0.1,
 )
 
 gk_instances = []

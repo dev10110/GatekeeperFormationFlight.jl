@@ -2,6 +2,15 @@ using GatekeeperFormationFlight
 using LinearAlgebra, StaticArrays
 using Dubins
 
+using GatekeeperFormationFlight.Gatekeeper:
+    get_obstacles,
+    apply_input_bounds,
+    state_dynamics!,
+    get_reference_path,
+    shortest_path,
+    path_length,
+    construct_reconnection_sites,
+    get_remaining_nominal
 
 @testset "2D Gatekeeper - 2D Dubins Dynamics" begin
     wezes = [Cardioid(1.0, 1.0), Cardioid(2.0, 2.0), Cardioid(3.0, 3.0)]
@@ -15,17 +24,17 @@ using Dubins
         v_max = 1.00,
     )
 
-    @test prob.wezes == GatekeeperFormationFlight.get_obstacles(prob)
-    @test prob.reference_path == GatekeeperFormationFlight.get_reference_path(prob)
+    @test prob.wezes == get_obstacles(prob)
+    @test prob.reference_path == get_reference_path(prob)
 
     D = Vector([0.0, 0.1, 0.0])
 
     input = SVector(2.0, 0.5)
-    input = GatekeeperFormationFlight.apply_input_bounds(prob, input)
+    input = apply_input_bounds(prob, input)
     @test input[1] == 1.0
     @test input[2] == 0.5
 
-    GatekeeperFormationFlight.state_dynamics!(
+    state_dynamics!(
         prob,
         D,
         SVector(0.0, 0.0, 0.0), # Current State
@@ -49,7 +58,7 @@ end
     from_state = Vector([0.0, 0.0, 0.0])
     to_state = Vector([1.0, 0.0, 0.0])
 
-    path = GatekeeperFormationFlight.shortest_path(prob, from_state, to_state)
+    path = shortest_path(prob, from_state, to_state)
 
     @test typeof(path) == Dubins.DubinsPath
     @test path != nothing
@@ -58,7 +67,7 @@ end
     @test path.ρ == prob.turning_radius
     @test path.path_type == Dubins.LSL
 
-    len = GatekeeperFormationFlight.path_length(prob, path)
+    len = path_length(prob, path)
     @test len == 1.0
 end
 
@@ -79,7 +88,7 @@ end
         v_max = 1.0,
     )
 
-    reconnection_sites = GatekeeperFormationFlight.construct_reconnection_sites(prob, 0.1)
+    reconnection_sites = construct_reconnection_sites(prob, 0.1)
 
     @test reconnection_sites != nothing
     @test size(reconnection_sites)[1] == 102
@@ -107,11 +116,10 @@ end
     connection_pt = Vector([2.0, 0.0, 0.0])
     path_idx = 1
 
-    remaining_nominal =
-        GatekeeperFormationFlight.get_remaining_nominal(prob, path_idx, connection_pt)
+    remaining_nominal = get_remaining_nominal(prob, path_idx, connection_pt)
 
     @test remaining_nominal != nothing
-    @test GatekeeperFormationFlight.path_length(prob, remaining_nominal) ≈ 8.0
+    @test path_length(prob, remaining_nominal) ≈ 8.0
 end
 
 @testset "2D Gatekeeper - Solve Problem, No Obstacles" begin
@@ -143,7 +151,7 @@ end
 
     gk_instance = GatekeeperInstance(prob, coeffs)
 
-    tspan = [0.0, GatekeeperFormationFlight.path_length(prob, reference_path) / prob.v_max]
+    tspan = [0.0, path_length(prob, reference_path) / prob.v_max]
     gk_solution =
         simulate_closed_loop_gatekeeper(gk_instance, SVector{3}(from_state), tspan)
 end

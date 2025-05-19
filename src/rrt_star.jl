@@ -4,6 +4,8 @@ module RRTStar
 
 export Node, rrt_star, get_best_path
 
+using ..Obstacles # for is_colliding I think
+
 abstract type AbstractProblem{T} end
 
 """

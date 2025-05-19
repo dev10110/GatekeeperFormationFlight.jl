@@ -3,6 +3,15 @@ using .RRTStar
 using StaticArrays
 using Dubins3D
 
+using ..Obstacles
+
+function Obstacles.is_colliding(
+    obs::VAO,
+    pos::VF,
+) where {AO<:AbstractObstacle,VAO<:AbstractVector{AO},F<:Real,VF<:AbstractVector{F}}
+    return any(o -> is_colliding(o, pos, 0.0, 0.0), obs)
+end
+
 
 """
     dubins_distance_3d(q1, q2; turning_radius = 40, pitch_angle_constraints = [-15, 20])
@@ -12,7 +21,7 @@ Get the distance between two states connected by a 3D dubins path
 function dubins_distance_3d(
     q1::SVector{5,Float64},
     q2::SVector{5,Float64};
-    turning_radius::Float64 = 40,
+    turning_radius::Float64 = 40.0,
     pitch_angle_constraints::SVector{2,Float64},# = SVector{2,Float64}(-15, 20),
 )
     return DubinsManeuver3D(q1, q2, turning_radius, pitch_angle_constraints).length

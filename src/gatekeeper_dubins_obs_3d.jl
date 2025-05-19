@@ -7,6 +7,8 @@ This file defines the Gatekeeper problem for 3D Dubins paths with obstacles.
 using Dubins3D
 using StaticArrays, LinearAlgebra
 
+using ..Gatekeeper
+
 import .dubins_3d_tracking_controller
 
 @kwdef struct GKDubinsObs3D{TOBS,TR,TOF,TF} <: GatekeeperProblem
@@ -19,13 +21,13 @@ import .dubins_3d_tracking_controller
     v_max::TF = 1.0 # maximum velocity
 end
 
-function get_reference_path(gk::GKDubinsObs3D)
+function Gatekeeper.get_reference_path(gk::GKDubinsObs3D)
     return gk.reference_path
 end
-function get_offset(gk::GKDubinsObs3D)
+function Gatekeeper.get_offset(gk::GKDubinsObs3D)
     return gk.offset
 end
-function get_obstacles(gk::GKDubinsObs3D)::AbstractVector{AbstractObstacle}
+function Gatekeeper.get_obstacles(gk::GKDubinsObs3D)::AbstractVector{AbstractObstacle}
     return gk.obstacles
 end
 
@@ -40,7 +42,7 @@ Gets the reference state and input at some time along the path.
 Directly calls the method 'get_reference_state_and_input defined in the 
 Dubins3DTrackingController module
 """
-function get_reference_state_and_input(
+function Gatekeeper.get_reference_state_and_input(
     gk::GKDubinsObs3D,
     path::AbstractVector{Dubins3D.DubinsManeuver3D}, # path
     time::F, # time
@@ -55,7 +57,7 @@ Gets the reference state and input at some time along the path given the offset
 Directly calls the method 'get_reference_state_and_input defined in the
 Dubins3DTrackingController module
 """
-function get_reference_state_and_input(
+function Gatekeeper.get_reference_state_and_input(
     gk::GKDubinsObs3D,
     path::AbstractVector{Dubins3D.DubinsManeuver3D},
     offset::AbstractVector{F},
@@ -70,7 +72,7 @@ end
 Directly calls the method 'tracking_controller defined in the 
 Dubins3DTrackingController module
 """
-function tracking_controller(
+function Gatekeeper.tracking_controller(
     gk::GKDubinsObs3D,
     curr_state::AbstractVector{F}, # Current State
     desired_state::SVector{5,F}, # Desired State
@@ -83,7 +85,7 @@ function tracking_controller(
     )
 end
 
-function apply_input_bounds(
+function Gatekeeper.apply_input_bounds(
     gk::GKDubinsObs3D,
     inputs::SVector{3,F}, # inputs
 )::SVector{3,F} where {F<:Real}
@@ -103,7 +105,7 @@ end
 
 Defines the dynamics of the system. Modifies D in place with the system dynamics
 """
-function state_dynamics!(
+function Gatekeeper.state_dynamics!(
     gk::GKDubinsObs3D,
     D, # D
     state::AbstractVector{F}, # Current State
@@ -128,11 +130,14 @@ end
 
 Return the length of the path using the metric defined by the problem
 """
-function path_length(gk::GKDubinsObs3D, p::Dubins3D.DubinsManeuver3D)
+function Gatekeeper.path_length(gk::GKDubinsObs3D, p::Dubins3D.DubinsManeuver3D)
     return p.length
 end
 
-function path_length(gk::GKDubinsObs3D, p::AbstractVector{Dubins3D.DubinsManeuver3D})
+function Gatekeeper.path_length(
+    gk::GKDubinsObs3D,
+    p::AbstractVector{Dubins3D.DubinsManeuver3D},
+)
     f = x -> path_length(gk, x)
     return sum(f, p)
 end
@@ -142,7 +147,7 @@ end
 
 Find the shortest path between two states using the architecture/method defined by the problem
 """
-function shortest_path(
+function Gatekeeper.shortest_path(
     gk::GKDubinsObs3D,
     from_state::SVector{5,F},
     to_state::SVector{5,F},
@@ -150,7 +155,7 @@ function shortest_path(
     return DubinsManeuver3D(from_state, to_state, gk.turning_radius, gk.pitch_limits)
 end
 
-function shortest_path(
+function Gatekeeper.shortest_path(
     gk::GKDubinsObs3D,
     from_state::Vector{F},
     to_state::SVector{5,F},
@@ -175,21 +180,21 @@ along a reference path, find the reconnection sites, aka the set of points where
 Returns a Vector of points along the reference path containing the index of the refernece path where the reconnection
 could happen, and the state
 """
-function construct_reconnection_sites(
+function Gatekeeper.construct_reconnection_sites(
     gk::GKDubinsObs3D,
     reconnection_step_size::F,
 )::Vector{Tuple{Int64,SVector{5,F}}} where {F<:Real} # ST is state type
     # Calculate the total number of reconnection sites to be computed
     total_sites = sum(
         ceil(Int, path_length(gk, path) / reconnection_step_size) for
-        path in get_reference_path(gk)
+        path in Gatekeeper.get_reference_path(gk)
     )
 
     # Preallocate the reconnection sites vector
     reconnection_sites = Vector{Tuple{Int64,SVector{5,F}}}(undef, total_sites)
 
     site_index = 1
-    for (path_idx, path) in enumerate(get_reference_path(gk))
+    for (path_idx, path) in enumerate(Gatekeeper.get_reference_path(gk))
         # num_samples = ceil(Int, path.length / reconnection_step_size)
         # pts = compute_sampling(path; numberOfSamples = num_samples)
 
@@ -214,21 +219,21 @@ end # reconnection step size
 
 Returns the remaining nominal path from the reference path, starting at path_idx to the end
 """
-function get_remaining_nominal(
+function Gatekeeper.get_remaining_nominal(
     prob::GKDubinsObs3D,
     path_idx::Int64,
     connection_pt::SVector{5,F},
 ) where {F<:Real}
 
     # remaining path
-    remaining_path = get_reference_path(prob)[path_idx+1:end]
+    remaining_path = Gatekeeper.get_reference_path(prob)[path_idx+1:end]
 
     # Construct path upto end of the segment
     # if connection_pt is the same as qf it might error
     try
         segment_path = DubinsManeuver3D(
             connection_pt,
-            get_reference_path(prob)[path_idx].qf,
+            Gatekeeper.get_reference_path(prob)[path_idx].qf,
             prob.turning_radius,
             prob.pitch_limits,
         )
@@ -244,7 +249,6 @@ end
 ##################################################################
 # Compute Nominal Trajectories
 ##################################################################
-
 
 """
     compute_nominal_trajectoreis(prob::GKDubinsObs3D)

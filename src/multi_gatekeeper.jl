@@ -3,13 +3,15 @@ File: src/multi_gatekeeper.jl
 
 Extension of gatekeeper.jl to simulate multiple agents at once
 """
-using Dubins3D
-using StaticArrays, LinearAlgebra
-
 module MultiGatekeeper
 
 export MultiGatekeeperProblem, get_single_agent_subproblem
 
+using Dubins3D
+using StaticArrays, LinearAlgebra
+using OrdinaryDiffEq, DiffEqCallbacks
+
+using ..Gatekeeper
 
 # ========== TYPE DEFINITIONS ==========
 abstract type MultiGatekeeperProblem <: GatekeeperProblem end
@@ -152,7 +154,7 @@ independent composite trajectories.
 Effectively converts the multi-agent problem into many single agent problems to re-use code
 from single-agent problems
 """
-function multi_closed_loop_tracking_composite!(D, state, params, time::F)
+function multi_closed_loop_tracking_composite!(D, state, params, time::Float64)
     gk, committed_traj = params
     Ts = committed_traj.switch_time
 
@@ -160,14 +162,14 @@ function multi_closed_loop_tracking_composite!(D, state, params, time::F)
 
     for agent = 1:n_agents
         if time <= Ts[agent]
-            closed_loop_tracking_nominal!(
+            Gatekeeper.closed_loop_tracking_nominal!(
                 view(D, agent),
                 state[agent],
                 get_single_agent_subproblem(gk.problem, agent),
                 time,
             )
         else
-            closed_loop_tracking_backup!(
+            Gatekeeper.closed_loop_tracking_backup!(
                 view(D, agent),
                 get_single_agent_subproblem(gk.problem, agent),
                 state[agent],
@@ -208,7 +210,7 @@ function try_update_agent_committed!(
 
     # Get the agent's nominal trajectory (until collision)
     nominal_solution =
-        construct_candidate_nominal_trajectory(agent_gk, state[agent_idx], time)
+        Gatekeeper.construct_candidate_nominal_trajectory(agent_gk, state[agent_idx], time)
 
     nominal_end_time = nominal_solution.t[end]
 
@@ -218,8 +220,10 @@ function try_update_agent_committed!(
         step = -gk.coefficients.switch_step_size,
     )
         nominal_end_state = nominal_solution(switch_time)
+
+        # TODO this might need to change
         backup_path =
-            construct_candidate_backup_trajectory_multi(agent_gk, nominal_end_state)
+            Gatekeeper.construct_candidate_backup_trajectory(agent_gk, nominal_end_state)
 
         if !isnothing(backup_path)
             # Update the committed trajectory in place

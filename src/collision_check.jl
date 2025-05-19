@@ -4,6 +4,8 @@ using LinearAlgebra, StaticArrays
 using Dubins, Dubins3D
 using RecipesBase
 
+using ..Obstacles
+
 abstract type CollisionRegion{F} end
 
 """
@@ -41,7 +43,7 @@ end
 
 return true if the distance between `reg1` and `reg2` is less than `tol`.
 """
-function is_colliding(reg1::CollisionRegion, reg2::CollisionRegion, tol = 0)
+function Obstacles.is_colliding(reg1::CollisionRegion, reg2::CollisionRegion, tol = 0)
     return minimum_distance(reg1, reg2) <= tol
 end
 
@@ -152,7 +154,7 @@ Checks by sampling every point `tol` apart along the path.
 
 To reduce computational cost, it checks bounding boxes first, and then also skips points too close to each other where there is no possibility of collision. 
 """
-function is_colliding(wez::W, path::DubinsPath, tol = 1e-5) where {W<:AbstractWez}
+function Obstacles.is_colliding(wez::W, path::DubinsPath, tol = 1e-5) where {W<:AbstractWez}
 
     # get the critical times
     t0 = 0.0
@@ -173,7 +175,7 @@ function is_colliding(wez::W, path::DubinsPath, tol = 1e-5) where {W<:AbstractWe
         path_collision_region = create_collision_region(path, sub_idx)
 
         # check collisions with wez (by using the bounding boxes)
-        if is_colliding(wez_collision_region, path_collision_region, tol)
+        if Obstacles.is_colliding(wez_collision_region, path_collision_region, tol)
 
             # check by sampling the trajectory
             last_τ = ts[sub_idx]
@@ -191,7 +193,7 @@ function is_colliding(wez::W, path::DubinsPath, tol = 1e-5) where {W<:AbstractWe
                 errcode, s = dubins_path_sample(path, τ)
                 @assert errcode == Dubins.EDUBOK
 
-                if is_colliding(wez, s, tol)
+                if Obstacles.is_colliding(wez, s, tol)
                     return true
                 end
 
@@ -212,7 +214,7 @@ end
 returns true if the dubins path gets within `tol` distance of any wez. See docs for `is_colliding(wez, path, tol)`.
 Sorts the wezes by distance before checking each one. 
 """
-function is_colliding(
+function Obstacles.is_colliding(
     wezes::VW,
     path::DubinsPath,
     tol = 1e-5,
@@ -221,62 +223,55 @@ function is_colliding(
     idxs = sortperm(min_dists)
 
     for i in idxs
-        if is_colliding(wezes[i], path, tol)
+        if Obstacles.is_colliding(wezes[i], path, tol)
             return true
         end
     end
     return false
 end
 
-function is_colliding(
+function Obstacles.is_colliding(
     wezes::VW,
     paths::VP,
     tol = 1e-5,
 ) where {W<:AbstractWez,VW<:AbstractVector{W},P<:DubinsPath,VP<:AbstractVector{P}}
     for p in paths
-        if is_colliding(wezes, p, tol)
+        if Obstacles.is_colliding(wezes, p, tol)
             return true
         end
     end
     return false
 end
+
+
+###############################################
+## 3D Dubins 
+###############################################
+
 
 """
     is_colliding(obs::O, path::DubinsManeuver3D, tol = 1e-5)
 
 Checks if an abstract static obstacle is colliding with a dubins maneuver in 3D
 """
-function is_colliding(
+function Obstacles.is_colliding(
     obs::O,
     path::DubinsManeuver3D,
+    time_offset::F = 0.0,
     tol = 1e-5,
-) where {O<:AbstractStaticObstacle}
-    # idea - for t in range 0, path.length, step = tol) sample that individual point into an already allocated SVEctor
-    # then check if the point is colliding with the obstacle
-    # if so return
-    # else continue
-    for t in range(0, path.length, step = tol)
-        pose_t::SVector{5,Float64} = Dubins3D.compute_at_len(path, t)
-
-        if is_colliding(obs, pose_t, 0.0)
-            return true
-        end
-    end
-    return false
+) where {O<:AbstractObstacle,F<:Real}
+    # Sample points along the path from 0 to path.length, if a point at offset t is colliding with
+    # the obstacle (or dynamic obstacle at time t + time_offset) return true
+    return any(
+        t -> Obstacles.is_colliding(
+            obs,
+            Dubins3D.compute_at_len(path, t),
+            t + time_offset,
+            tol,
+        ),
+        range(0, path.length, step = tol),
+    )
 end
-
-"""
-    is_colliding(obs::Cylinder, path::DubinsManeuver3D, tol = 1e-5)
-
-Checks if a cylinder is colliding with a 3D dubins maneuver
-"""
-# function is_colliding(obs::Cylinder, path::DubinsManeuver3D, tol = 1e-5)
-#     # for now... naieve solution
-#     N = Int(ceil(path.length / tol))
-
-#     samples = compute_sampling(path; numberOfSamples = N)
-#     return any(s -> is_colliding(obs, s), samples)
-# end
 
 """
     is_colliding(obs::VO, path::DubinsPath, tol = 1e-5)
@@ -285,42 +280,54 @@ Checks if a vector of abstract static obstacles is colliding with a dubins maneu
 
 THIS ONLY WORKS FOR CYLINDERS TBH
 """
-function is_colliding(
-    obs::Vector{O},
+function Obstacles.is_colliding(
+    obs::VO,
     path::DubinsManeuver3D,
-    tol = 1e-5,
-) where {O<:AbstractStaticObstacle}
-    min_dists = [norm(o.center[1:2] - path.qi[1:2]) for o in obs]
-    idxs = sortperm(min_dists)
+    time_offset::F = 0.0,
+    tol::F = 1e-5,
+) where {O<:AbstractObstacle,VO<:AbstractVector{O},F<:Real}
+    # min_dists = [norm(o.center[1:2] - path.qi[1:2]) for o in obs]
+    # idxs = sortperm(min_dists)
 
-    for i in idxs
-        if is_colliding(obs[i], path, tol)
-            return true
-        end
-    end
+    # for i in idxs
+    #     if Obstacles.is_colliding(obs[i], path, tol)
+    #         return true
+    #     end
+    # end
 
-    return false
+    # return false
+    return any(o -> Obstacles.is_colliding(o, path, time_offset, tol), obs)
 end
 
 """
     is_colliding(obs::VO, path::DubinsManeuver3D, tol = 1e-5)
-Checks if a vector of abstract static obstacles is colliding with a vector of paths
+Checks if a vector of abstract obstacles is colliding with a vector of paths
+
+Parameters
+----------
+obs::VO: vector of abstract obstacles
+paths::VM: vector of paths
+time_offset::F: the time offset between the dynamic obstacles stored in obs and the start of the path
+i.e. the time at which the path starts
+tol::F: the tolerance for collision checking
 """
-function is_colliding(
+function Obstacles.is_colliding(
     obs::VO,
-    paths::AbstractVector{DubinsManeuver3D},
-    time::F,
-    tol = 1e-5,
-) where {F<:Real,O<:AbstractObstacle,VO<:AbstractVector{O}}
-    for p in paths
-        if is_colliding(obs, p, time, tol)
-            return true
-        end
-    end
-
-    return false
+    paths::VM,
+    time_offset::F = 0.0,
+    tol::F = 1e-5,
+) where {
+    F<:Real,
+    O<:AbstractObstacle,
+    VO<:AbstractVector{O},
+    VM<:AbstractVector{DubinsManeuver3D},
+}
+    cumulative_times = [0.0; cumsum([p.length for p in paths[1:end-1]])]
+    return any(
+        Obstacles.is_colliding(obs, p, p_off + time_offset, tol) for
+        (p, p_off) in zip(paths, cumulative_times)
+    )
 end
-
 
 #################################################
 ## Plotting #####################################

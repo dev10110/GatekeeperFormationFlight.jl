@@ -9,7 +9,7 @@ export Robot, Cardioid, CircularWez, Cbez
 export GatekeeperInstance, GatekeeperCoefficients
 
 # Export Types of Dubins Problems
-export GKDubinsWezes2D, GKDubinsObs3D
+export GKDubinsWezes2D, GKDubinsObs3D, GKDubinsObs3DInterAgent
 
 # 3D Exports
 export Robot3, Sphere, Cylinder, PlotCircle
@@ -25,13 +25,14 @@ export get_reference_state_and_input, tracking_controller
 
 export GatekeeperProblem, simulate_closed_loop_gatekeeper, construct_candidate_trajectory
 
-include("robot_3d.jl")
+include("robot/RobotTypes.jl")
+using .RobotTypes
 
-include("obstacle.jl")
+include("obstacles/Obstacles.jl")
+using .Obstacles
+
 
 include("utils.jl")
-include("robot.jl")
-include("wez.jl")
 include("collision_check.jl")
 include("plotting_utils.jl")
 
@@ -42,6 +43,11 @@ include("3d_dubins_rrt_star.jl")
 
 # High level gatekeeper algorithm
 include("gatekeeper.jl")
+using .Gatekeeper
+using .Gatekeeper: path_length
+
+include("multi_gatekeeper.jl")
+using .MultiGatekeeper
 
 # 2D GATEKEEPER IMPLEMENTATION
 include("2d_tracking_controller.jl")
@@ -53,4 +59,5 @@ include("gatekeeper_dubins_obs_3d.jl")
 # Include the Dubins3D tracking controller but don't export it
 include("dubins_3d_tracking_controller.jl")
 
+include("multi_gatekeeper_dubins_obs_3d.jl")
 end

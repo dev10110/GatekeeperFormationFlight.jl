@@ -3,7 +3,9 @@
 using StaticArrays, LinearAlgebra
 using RecipesBase
 
-abstract type AbstractWez <: AbstractObstacle end
+using ..RobotTypes
+
+abstract type AbstractWez <: AbstractStaticObstacle end
 
 """
     is_colliding(wez::AbstractWez, robot::Robot, tol)
@@ -11,7 +13,7 @@ abstract type AbstractWez <: AbstractObstacle end
 
 returns `collision_distance(wez, robot) <= tol`
 """
-function is_colliding end
+# function is_colliding end
 
 """
     collision_distance(wez::AbstractWez, robot::Robot)
@@ -19,7 +21,7 @@ function is_colliding end
 
 returns the distance to collision for this robot to the wez. Positive if safe. If the robot is within the wez, it will return a negative number. 
 """
-function collision_distance end
+# function collision_distance end
 
 """
     wez_coordinates(θ, wez::AbstractWez, robot::Robot)
@@ -248,7 +250,7 @@ function is_colliding(
     vc::VW,
     x::AbstractVector{F},
     tol = 0,
-) where {W<:AbstractWez,VW<:AbstractVector{W},F}
+) where {W<:AbstractWez,VW<:AbstractVector{W},F<:Real}
     r = Robot(x)
     return is_colliding(vc, r, tol)
 end
@@ -275,14 +277,14 @@ function is_colliding(
     return false
 end
 
-function is_colliding(
-    ws::VW,
-    x::SVector{3,F},
-    tol = 0,
-) where {W<:AbstractWez,VW<:AbstractVector{W},F}
-    r = Robot(x)
-    return is_colliding(ws, r, tol)
-end
+# function is_colliding(
+#     ws::VW,
+#     x::SVector{3,F},
+#     tol = 0,
+# ) where {W<:AbstractWez,VW<:AbstractVector{W},F}
+#     r = Robot(x)
+#     return is_colliding(ws, r, tol)
+# end
 
 function collision_distance(ws::VW, r::Robot) where {W<:AbstractWez,VW<:AbstractVector{W}}
     if length(ws) == 0

@@ -1,6 +1,13 @@
+"""
+File: src/obstacle.jl
+
+This file defines the types and functions for obstacles 
+"""
 
 using StaticArrays, LinearAlgebra
 using RecipesBase
+
+using ..RobotTypes
 
 abstract type AbstractObstacle end
 
@@ -8,111 +15,48 @@ abstract type AbstractStaticObstacle <: AbstractObstacle end
 abstract type AbstractDynamicObstacle <: AbstractObstacle end
 
 """
-    is_colliding(obstacle::AbstractStaticObstacle, robot::Robot, tolerance)
-    is_colliding(obstacles::Vector{AbstractStaticObstacle}, robot::Robot, tolerance)
-
 returns 'collision_distance(obstacle, robot) <= tolerance'
 """
 function is_colliding end
 
 """
-    collision_distance(obstacle::AbstractStaticObstacle, robot::Robot)
-    collision_distance(obstacles::Vector{AbstractStaticObstacle}, robot::Robot)
-
 returns the distance to collision for this robot to the obstacle. Positive if safe.
 """
 function collision_distance end
 
-
-"""
-Check if a 3D point is within a distance tol of an obstacle
-"""
-# function is_colliding(
-#     obstacle::O,
-#     v::SVector{3,F},
-#     tol = 0.0,
-# ) where {O<:AbstractStaticObstacle,F<:Real}
-#     return collision_distance(obstacle, v) <= tol
-# end
-
-# function is_colliding(
-#     obstacle::O,
-#     V::VF,
-#     tol = 0.0,
-# ) where {O<:AbstractStaticObstacle,F<:Real,VF<:AbstractVector{F}}
-#     @assert length(V) >= 3
-# end
-
-# function is_colliding(
-#     obstacles::VO,
-#     V::AbstractVector{F},
-#     tol = 0.0,
-# ) where {O<:AbstractStaticObstacle,VO<:AbstractVector{O},F<:Real}
-#     @assert length(V) >= 3
-#     return any(obs -> is_colliding(obs, V, tol), obstacles)
-# end
 """
     is_colliding(obstacle::AbstractStaticObstacle, v::SVector{3,F}, tol = 0.0)
 
-Check if one single point is withing a distance tol of one single obstacle
+Base level is_colliding function for a single obstacle.
+Checks if a point is within a distance tol of some obstacle
 """
 function is_colliding(
     obstacle::O,
     v::VF,
-    tol = 1e-3,
-) where {O<:AbstractStaticObstacle,F<:Real,VF<:AbstractVector{F}}
-    @assert length(v) >= 3
-    return collision_distance(obstacle, v) <= tol
+    time::F,
+    tol::F = 1e-3,
+) where {O<:AbstractObstacle,F<:Real,VF<:AbstractVector{F}}
+    return collision_distance(obstacle, v, time) <= tol
 end
 
 """
-    is_colliding(obstacles::Vector{AbstractStaticObstacle}, v::SVector{3,F}, tol = 0.0)
-
-Check if a 3D point is within a distance tol of any obstacle in the vector obstacles
+    is_colliding(obstacle::Vector{AbstractObstacle}, v::AbstractVector{F}, time, tol = 0.0)
 """
 function is_colliding(
-    obstacles::Vector{O},
+    obs::VAO,
     v::VF,
-    tol = 0.0,
-) where {O<:AbstractStaticObstacle,F<:Real,VF<:AbstractVector{F}}
-    return any(obs -> is_colliding(obs, v, tol), obstacles)
+    time::F,
+    tol::F,
+) where {F<:Real,AO<:AbstractObstacle,VAO<:AbstractVector{AO},VF<:AbstractVector{F}}
+    return any(o -> is_colliding(o, v, time, tol), obs)
 end
-
-
-
 
 """
 Check if a Robot3 is within a distance tol of an obstacle
 """
-function is_colliding(obstacle::O, r::Robot3, tol = 0.0) where {O<:AbstractStaticObstacle}
-    return is_colliding(obstacle, r.pos, tol)
+function is_colliding(obstacle_or_obstacles::OBS, r::Robot3, tol = 0.0) where {OBS}
+    return is_colliding(obstacle_or_obstacles, r.pos, tol)
 end
-
-"""
-Returns true if the robot is within distasnce tol of any obstacle o ∈ obstacles
-"""
-function is_colliding(
-    obstacles::Vector{O},
-    r::Robot3,
-    tol = 0.0,
-) where {O<:AbstractStaticObstacle}
-    return is_colliding(obstacles, r.pos, tol)
-end
-
-
-"""
-    collision_distance(obstacles::Vector{AbstractStaticObstacle}, x::AbstractVector{F}, tol = 0.0)
-
-Returns the minimum distance to collision from one point to a vector of obstacles
-"""
-# function collision_distance(
-#     obstacles::VO,
-#     x::VF,
-#     tol = 0.0,
-# ) where {O<:AbstractStaticObstacle,VO<:AbstractVector{O},F<:Real,VF<:AbstractVector{F}}
-#     @assert length(x) >= 3
-#     return minimum(o -> collision_distance(o, x), obstacles)
-# end
 
 """
     collision_distance(obstacle::AbstractStaticObstacle, x::AbstractVector{F}, tol, time)
@@ -122,27 +66,24 @@ Adatper for when static obstacles are used in a dynamic context
 function collision_distance(
     obstacle::O,
     x::VF,
-    tol::Float64,
-    time::Float64,
+    time::F,
 ) where {O<:AbstractStaticObstacle,F<:Real,VF<:AbstractVector{F}}
-    @assert length(x) >= 3
     return collision_distance(obstacle, x)
 end
 
 """
-    collision_distance(obstacles::Vector{AbstractStaticObstacle}, x::AbstractVector{F}, tol = 0.0)
+    collision_distance(obstacles::Vector{AbstractStaticObstacle}, x::AbstractVector{F}, time::F)
 
-Returns the minimum distance to collision from one point to a vector of obstacles
+Returns the minimum distance to collision from one point to a vector of obstacles at some time t
 """
 function collision_distance(
     obstacles::VO,
     x::VF,
-    tol::Float64,
     time::Float64,
 ) where {O<:AbstractObstacle,VO<:AbstractVector{O},F<:Real,VF<:AbstractVector{F}}
-    @assert length(x) >= 3
-    return minimum(o -> collision_distance(o, x, tol, time), obstacles)
+    return minimum(o -> collision_distance(o, x, time), obstacles; init = Inf)
 end
+
 ###############################################################
 ### Spherical #################################################
 ###############################################################
@@ -183,8 +124,8 @@ struct Cylinder{F} <: AbstractStaticObstacle where {F<:Real}
     center::SVector{3,F}
     radius::F
 end
-Cylinder(center::SVector{3,F}) where {F} = Cylinder(center, E, 10.0)
-Cylinder(x::F, y::F, r::F) where {F} = Cylinder(SVector{3,F}([x, y, 0.0]), r)
+Cylinder(center::SVector{3,F}) where {F<:Real} = Cylinder(center, E, 10.0)
+Cylinder(x::F, y::F, r::F) where {F<:Real} = Cylinder(SVector{3,F}([x, y, 0.0]), r)
 
 """
     collision_distance(center::Cylinder, x::SVector{3,F})
@@ -204,8 +145,8 @@ struct TimeVaryingSphere{F} <: AbstractDynamicObstacle where {F<:Real}
     radius::F
 end
 
-function TimeVaryingSphere(gk_solution, radius::F)
-    pos_at_t = t -> @SVector{3, F}(gk_solution(t)[1], gk_solution(t)[2], gk_solution(t)[3])
+function TimeVaryingSphere(gk_solution, radius::F) where {F<:Real}
+    pos_at_t = t -> SVector{3,F}(gk_solution(t)[1], gk_solution(t)[2], gk_solution(t)[3])
     return TimeVaryingSphere(pos_at_t, radius)
 end
 

@@ -7,33 +7,42 @@ This file defines the Gatekeeper problem for 3D Dubins paths with obstacles and 
 using Dubins3D
 using StaticArrays, LinearAlgebra
 
+using ..Obstacles
+using ..Gatekeeper
+
 import .dubins_3d_tracking_controller
 
-@kwdef struct GKDubinsObs3DInterAgent{TOBS,TR,TOF,TF,TAC} <: MultiGatekeeperProblem
+@kwdef struct GKDubinsObs3DInterAgent{TOBS,TR,TOF,TF,TP} <: MultiGatekeeperProblem
     static_obstacles::TOBS # list of obstacles
     reference_path::TR # reference trajectory of the leader
     offset::TOF = [SVector(0.0, 0.0, 0.0)] # vector of desired offsets from the leader (xyz)
     turning_radius::TF = 10.0 # turning radius
-    pitch_limits = (-deg2rad(10), deg2rad(15)) # pitch limits
+    pitch_limits::TP = SVector{2,Float64}(-deg2rad(10), deg2rad(15)) # pitch limits
     v_min::TF = 0.8 # minimum velocity
     v_max::TF = 1.0 # maximum velocity
     agent_radius::TF = 0.5 # radius of the agents for inter-agent collision checks
 end
 
-function get_reference_path(gk::GKDubinsObs3DInterAgent)
+function Gatekeeper.get_reference_path(gk::GKDubinsObs3DInterAgent)
     return gk.reference_path
 end
 
-function get_offset(gk::GKDubinsObs3DInterAgent)
+function Gatekeeper.get_offset(gk::GKDubinsObs3DInterAgent)
     return gk.offset
 end
 
-function get_obstacles(gk::GKDubinsObs3DInterAgent)::AbstractVector{AbstractObstacle}
+function Gatekeeper.get_obstacles(
+    gk::GKDubinsObs3DInterAgent,
+)::AbstractVector{AbstractObstacle}
     return gk.static_obstacles
 end
 
+function Gatekeeper.path_length(gk::GKDubinsObs3DInterAgent, path)::Float64
+    return Gatekeeper.path_length(get_single_agent_subproblem(gk, 1), path)
+end
+
 function get_single_agent_subproblem(
-    gk::GKDUbinsObs3DInterAgent,
+    gk::GKDubinsObs3DInterAgent,
     agent_idx::Int,
 )::GKDubinsObs3D
     return GKDubinsObs3D(
