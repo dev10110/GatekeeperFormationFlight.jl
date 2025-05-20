@@ -16,9 +16,12 @@ function create_random_scenario(N_obstacles = 10, env_size = 100, radius_avg = 5
 end
 
 # Random.seed!(22331234)
-Random.seed!(92541234)
+# Random.seed!(92541234) # good 25
+# Random.seed!(97641234) # good 25
+# Random.seed!(111111112) # good 25
+Random.seed!(111111114) # good 25
 # obstacles = create_random_scenario(25)
-obstacles = create_random_scenario(25)
+obstacles = create_random_scenario(25, 100, 5)
 
 domain = (
     SVector(0.0, 0.0, 0.0, -1.0 * π, PITCH_LIMITS[1]),
@@ -110,12 +113,12 @@ push!(reference_trajectory, end_straight_maneuver)
 #     SVector{5,Float64}(-13.0, -4.0, 0.0, 0.0, 0.0),
 #     SVector{5,Float64}(-13.0, 6.0, 0.0, 0.0, 0.0),
 # ]
-offsets = [SVector(0.0, 0.0, 0.0), SVector(-1.0, -3.0, 0.0), SVector(-1.0, 3.0, 0.0)]
+offsets = [SVector(0.0, 0.0, 0.0), SVector(-1.0, -2.0, 0.0), SVector(-1.0, 2.0, 0.0)]
 
 follower_robots = [
     SVector{5,Float64}(-10.0, 1.0, 1.0, 0.0, 0.0),
-    SVector{5,Float64}(-11.0, -2.0, 1.0, 0.0, 0.0),
-    SVector{5,Float64}(-11.0, 4.0, 1.0, 0.0, 0.0),
+    SVector{5,Float64}(-11.5, -1.0, 1.0, 0.0, 0.0),
+    SVector{5,Float64}(-11.0, 3.0, 1.0, 0.0, 0.0),
 ]
 
 coeffs = GatekeeperCoefficients(
@@ -201,13 +204,15 @@ ts = solution.t
 states = [solution(t) for t in ts]
 
 # Convert to arrays for each agent
-agent1_xyz = hcat([s[1, 1:3] for s in states]...)  # 3 x N
-agent2_xyz = hcat([s[2, 1:3] for s in states]...)
-agent3_xyz = hcat([s[3, 1:3] for s in states]...)
-
-plot!(agent1_xyz[1, :], agent1_xyz[2, :], agent1_xyz[3, :], label = "Agent 1")
-plot!(agent2_xyz[1, :], agent2_xyz[2, :], agent2_xyz[3, :], label = "Agent 2")
-plot!(agent3_xyz[1, :], agent3_xyz[2, :], agent3_xyz[3, :], label = "Agent 3")
+for agent in eachindex(multi_gk_instance.problem.offset)
+    agent_states = hcat([s[agent, 1:3] for s in states]...)
+    plot!(
+        agent_states[1, :],
+        agent_states[2, :],
+        agent_states[3, :],
+        label = "Agent $agent",
+    )
+end
 
 ########################################
 # PLOTTING 2D SCENARIO
@@ -250,17 +255,10 @@ for agent in eachindex(multi_gk_instance.problem.offset)
 end
 
 ## PLOT TAKEN TRAJECTORIES
-ts = solution.t
-states = [solution(t) for t in ts]
-
-# Convert to arrays for each agent
-agent1_xyz = hcat([s[1, 1:3] for s in states]...)  # 3 x N
-agent2_xyz = hcat([s[2, 1:3] for s in states]...)
-agent3_xyz = hcat([s[3, 1:3] for s in states]...)
-
-plot!(agent1_xyz[1, :], agent1_xyz[2, :], label = "Agent 1")
-plot!(agent2_xyz[1, :], agent2_xyz[2, :], label = "Agent 2")
-plot!(agent3_xyz[1, :], agent3_xyz[2, :], label = "Agent 3")
+for agent in eachindex(multi_gk_instance.problem.offset)
+    agent_states = hcat([s[agent, 1:3] for s in states]...)
+    plot!(agent_states[1, :], agent_states[2, :], label = "Agent $agent")
+end
 
 
 ########################################
@@ -271,8 +269,8 @@ function min_interagent_distance(t)
 
     distances = [
         norm(s[1, 1:3] - s[2, 1:3]),
-        norm(s[1, 1:3] - s[3, 1:3]),
-        norm(s[2, 1:3] - s[3, 1:3]),
+        # norm(s[1, 1:3] - s[3, 1:3]),
+        # norm(s[2, 1:3] - s[3, 1:3]),
     ]
 
     return minimum(distances)
@@ -306,8 +304,6 @@ savefig(p, "3d_gatekeeper_interagent.png")
 
 
 # ## ANIMATE
-
-@assert false # comment this line to run the animation
 
 @show "Starting Animation"
 

@@ -42,6 +42,15 @@ function Gatekeeper.path_length(gk::GKDubinsObs3DInterAgent, path)::Float64
     return Gatekeeper.path_length(MultiGatekeeper.get_single_agent_subproblem(gk, 1), path)
 end
 
+"""
+Given the agent minimum turning radius and the agent radius, this function computes the
+exclusion zone for the agent--the minimum distance between two agents along a dubins path
+to avoid collision.
+"""
+function exclusion_zone(turning_radius::Float64, agent_radius::Float64)::Float64
+    return 2 * turning_radius * asin(agent_radius / turning_radius)
+end
+
 function MultiGatekeeper.get_single_agent_subproblem(
     gk::GKDubinsObs3DInterAgent,
     agent_idx::Int,
@@ -62,12 +71,14 @@ function MultiGatekeeper.get_single_agent_subproblem(
     agent_idx::Int,
     committed_traj::CompositeTrajectory,
 )::GKDubinsObs3D
+    exclusion_radius = exclusion_zone(gk.turning_radius, gk.agent_radius)
+
     interagent_obstacles = [
         make_spherical_obstacle(
             committed_traj.nominal[i],
             committed_traj.backup[i],
             committed_traj.switch_time[i],
-            gk.agent_radius,
+            exclusion_radius,
         ) for i = 1:length(committed_traj.nominal) if i != agent_idx
     ]
 
@@ -86,7 +97,7 @@ function make_spherical_obstacle(
     nominal_trajectory, # This is an odesolution / basically a function
     backup_trajectory,  # This is a vector of Dubins3D maneuvers
     switch_time::F,
-    agent_radius::F,
+    radius::F,
 )::TimeVaryingSphere where {F<:Real}
 
     function position_function(t::F)::SVector{3,F}
@@ -103,5 +114,5 @@ function make_spherical_obstacle(
     end
 
 
-    return TimeVaryingSphere(position_function, agent_radius * 2)
+    return TimeVaryingSphere(position_function, radius)
 end

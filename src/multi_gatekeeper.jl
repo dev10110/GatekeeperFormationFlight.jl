@@ -92,17 +92,6 @@ function Gatekeeper.simulate_closed_loop_gatekeeper(
     update_committed_callback =
         IterativeCallback(min_switch_time_gatekeeper, update_agent_committed_callback!)
 
-    # Setup progress bar
-    # t0, tf = timespan
-    # prog = Progress(floor(Int, tf - t0); desc = "Simulating", barlen = 30)
-
-    # function progress_func(integrator)
-    #     ProgressMeter.next!(prog, integrator.t - t0)
-    #     return false
-    # end
-
-    # progress_callback = DiscreteCallback((u, t, integrator) -> true, progress_func)
-
     odesol_gatekeeper = solve(
         odeproblem,
         Tsit5(),
@@ -238,6 +227,10 @@ function try_update_agent_committed!(
         time,
     )
 
+    if isnothing(nominal_solution)
+        return false
+    end
+
     nominal_end_time = nominal_solution.t[end]
 
     for switch_time in range(
@@ -248,8 +241,11 @@ function try_update_agent_committed!(
         nominal_end_state = nominal_solution(switch_time)
 
         # TODO this might need to change
-        backup_path =
-            Gatekeeper.construct_candidate_backup_trajectory(agent_gk, nominal_end_state)
+        backup_path = Gatekeeper.construct_candidate_backup_trajectory(
+            agent_gk,
+            nominal_end_state,
+            switch_time,
+        )
 
         if !isnothing(backup_path)
             # Update the committed trajectory in place
@@ -260,6 +256,15 @@ function try_update_agent_committed!(
         end
     end
     return false
+end
+
+function filtered_candidate_backup_trajectory(
+    gk::GP,
+    state::ST,
+    agent_idx::Int,
+    committed_traj::CompositeTrajectory,
+) where {GP<:GatekeeperProblem,ST}
+
 end
 
 function print_simulation_banner(n_agents::Int)

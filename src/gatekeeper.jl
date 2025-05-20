@@ -438,7 +438,8 @@ From some initial state, attempts to construct the best backup trajectory
 function construct_candidate_backup_trajectory(
     gk::GatekeeperInstance{GP},
     state::ST,
-)::Union{Any,Nothing} where {ST,GP<:GatekeeperProblem}
+    time::F = 0.0,
+)::Union{Any,Nothing} where {ST,GP<:GatekeeperProblem,F}
 
     # Get the set of reconnection sites
     reconnection_sites =
@@ -458,7 +459,7 @@ function construct_candidate_backup_trajectory(
         if !is_colliding(
             get_obstacles(gk.problem),
             connection_path,
-            0.0,
+            time,
             gk.coefficients.collision_check_step_size, # path sampling frequency
             gk.coefficients.collision_check_step_size * 2.0, # collision tolerance
         )
