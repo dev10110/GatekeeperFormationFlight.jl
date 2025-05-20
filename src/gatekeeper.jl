@@ -162,7 +162,7 @@ struct GatekeeperInstance{GP<:GatekeeperProblem}
     coefficients::GatekeeperCoefficients
 end
 
-struct CompositeTrajectory{TN,TB,TS<:Real}
+struct CompositeTrajectory{TN,TB,TS}
     nominal::TN
     backup::TB
     switch_time::TS
@@ -183,8 +183,9 @@ function simulate_closed_loop_gatekeeper(
     if is_colliding(
         get_obstacles(gk.problem),
         get_reference_path(gk.problem),
-        0.0,
+        timespan[1],
         gk.coefficients.collision_check_step_size,
+        0.0,
     )
         @warn "Reference path is not safe !!"
     end
@@ -250,7 +251,7 @@ function update_committed_affect!(integrator)
     gk, committed_traj = params
 
     # Attempt to construct a new candidate trajectory
-    @time candidate_trajectory = construct_candidate_trajectory(gk, state, time)
+    candidate_trajectory = construct_candidate_trajectory(gk, state, time)
 
     # If candidate trajectory is constructed successfully, update
     if !isnothing(candidate_trajectory)
@@ -360,8 +361,7 @@ function construct_candidate_trajectory(
 )::Union{CompositeTrajectory,Nothing} where {ST,F<:Real} # State Type
 
     # Construct the nominal trajectory
-    @show "nominal trajectory"
-    @time nominal_solution = construct_candidate_nominal_trajectory(gk, state, time)
+    nominal_solution = construct_candidate_nominal_trajectory(gk, state, time)
 
     if isnothing(nominal_solution)
         return nothing
@@ -380,8 +380,7 @@ function construct_candidate_trajectory(
         nominal_end_state = nominal_solution(switch_time) # returns a vector
 
         # construct a backup from this switch time
-        @show "backup trajectory"
-        @time backup_path = construct_candidate_backup_trajectory(gk, nominal_end_state)
+        backup_path = construct_candidate_backup_trajectory(gk, nominal_end_state)
 
         # If found a backup path successfully, return it
         if !isnothing(backup_path)
@@ -405,7 +404,7 @@ function construct_candidate_nominal_trajectory(
 ) where {ST,F<:Real} # State Type
     # Check if initial condition is safe
     if is_colliding(get_obstacles(gk.problem), state, time, 0.0)
-        @warn "robot is in collision. Collision distance: $(collision_distance(get_obstacles(gk.problem), state))"
+        @warn "robot is in collision. Collision distance: $(collision_distance(get_obstacles(gk.problem), state, time))"
         return nothing
     end
 
@@ -460,7 +459,8 @@ function construct_candidate_backup_trajectory(
             get_obstacles(gk.problem),
             connection_path,
             0.0,
-            gk.coefficients.collision_check_step_size * 2.0,
+            gk.coefficients.collision_check_step_size, # path sampling frequency
+            gk.coefficients.collision_check_step_size * 2.0, # collision tolerance
         )
             # Construct the path 
             path_idx, connection_pt = reconnection_sites[connection_idx]

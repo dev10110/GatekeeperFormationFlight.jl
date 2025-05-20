@@ -41,6 +41,10 @@ include("rrt_star.jl")
 include("dubins_rrt_star.jl")
 include("3d_dubins_rrt_star.jl")
 
+# Include the tracking controllers but don't export it
+include("2d_tracking_controller.jl")
+include("dubins_3d_tracking_controller.jl")
+
 # High level gatekeeper algorithm
 include("gatekeeper.jl")
 using .Gatekeeper
@@ -50,14 +54,11 @@ include("multi_gatekeeper.jl")
 using .MultiGatekeeper
 
 # 2D GATEKEEPER IMPLEMENTATION
-include("2d_tracking_controller.jl")
 include("gatekeeper_dubins_wezes_2d.jl")
 
 # 3D GATEKEEPER IMPLEMENTATION
 include("gatekeeper_dubins_obs_3d.jl")
 
-# Include the Dubins3D tracking controller but don't export it
-include("dubins_3d_tracking_controller.jl")
 
 include("multi_gatekeeper_dubins_obs_3d.jl")
 end

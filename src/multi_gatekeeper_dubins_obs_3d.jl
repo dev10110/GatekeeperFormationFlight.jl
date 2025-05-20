@@ -10,7 +10,8 @@ using StaticArrays, LinearAlgebra
 using ..Obstacles
 using ..Gatekeeper
 
-import .dubins_3d_tracking_controller
+# import ..dubins_3d_tracking_controller
+import ..Dubins3DTrackingController
 
 @kwdef struct GKDubinsObs3DInterAgent{TOBS,TR,TOF,TF,TP} <: MultiGatekeeperProblem
     static_obstacles::TOBS # list of obstacles
@@ -38,10 +39,10 @@ function Gatekeeper.get_obstacles(
 end
 
 function Gatekeeper.path_length(gk::GKDubinsObs3DInterAgent, path)::Float64
-    return Gatekeeper.path_length(get_single_agent_subproblem(gk, 1), path)
+    return Gatekeeper.path_length(MultiGatekeeper.get_single_agent_subproblem(gk, 1), path)
 end
 
-function get_single_agent_subproblem(
+function MultiGatekeeper.get_single_agent_subproblem(
     gk::GKDubinsObs3DInterAgent,
     agent_idx::Int,
 )::GKDubinsObs3D
@@ -56,15 +57,14 @@ function get_single_agent_subproblem(
     )
 end
 
-function get_single_agent_subproblem(
+function MultiGatekeeper.get_single_agent_subproblem(
     gk::GKDubinsObs3DInterAgent,
     agent_idx::Int,
     committed_traj::CompositeTrajectory,
 )::GKDubinsObs3D
-
     interagent_obstacles = [
         make_spherical_obstacle(
-            commited_traj.nominal[i],
+            committed_traj.nominal[i],
             committed_traj.backup[i],
             committed_traj.switch_time[i],
             gk.agent_radius,
@@ -85,16 +85,16 @@ end
 function make_spherical_obstacle(
     nominal_trajectory, # This is an odesolution / basically a function
     backup_trajectory,  # This is a vector of Dubins3D maneuvers
-    switch_time::Float64,
-    agent_radius::Float64,
-)::TimeVaryingSphere
+    switch_time::F,
+    agent_radius::F,
+)::TimeVaryingSphere where {F<:Real}
 
-    function position_function(t::Float64)::SVector{3,Float64}
+    function position_function(t::F)::SVector{3,F}
         if t < switch_time
-            return SVector{3,f}(nominal_trajectory(t)[1:3])
+            return SVector{3,F}(nominal_trajectory(t)[1:3])
         else
-            return SVector{3,f}(
-                dubins_3d_tracking_controller.get_reference_state_and_input(
+            return SVector{3,F}(
+                Dubins3DTrackingController.get_reference_state_and_input(
                     backup_trajectory,
                     t - switch_time,
                 )[1][1:3],
@@ -103,5 +103,5 @@ function make_spherical_obstacle(
     end
 
 
-    return TimeVaryingSphere(position_function, agent_radius)
+    return TimeVaryingSphere(position_function, agent_radius * 2)
 end

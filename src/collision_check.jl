@@ -258,7 +258,8 @@ function Obstacles.is_colliding(
     obs::O,
     path::DubinsManeuver3D,
     time_offset::F = 0.0,
-    tol = 1e-5,
+    sampling_density::F = 0.25, # resolution to sample the path
+    collision_tol = 1e-5, # threshold for collision
 ) where {O<:AbstractObstacle,F<:Real}
     # Sample points along the path from 0 to path.length, if a point at offset t is colliding with
     # the obstacle (or dynamic obstacle at time t + time_offset) return true
@@ -267,9 +268,9 @@ function Obstacles.is_colliding(
             obs,
             Dubins3D.compute_at_len(path, t),
             t + time_offset,
-            tol,
+            collision_tol,
         ),
-        range(0, path.length, step = tol),
+        range(0, path.length, step = sampling_density),
     )
 end
 
@@ -284,19 +285,13 @@ function Obstacles.is_colliding(
     obs::VO,
     path::DubinsManeuver3D,
     time_offset::F = 0.0,
-    tol::F = 1e-5,
+    sampling_density::F = 0.25, # resolution to sample the path
+    collision_tol::F = 1e-5, # threshold for collision
 ) where {O<:AbstractObstacle,VO<:AbstractVector{O},F<:Real}
-    # min_dists = [norm(o.center[1:2] - path.qi[1:2]) for o in obs]
-    # idxs = sortperm(min_dists)
-
-    # for i in idxs
-    #     if Obstacles.is_colliding(obs[i], path, tol)
-    #         return true
-    #     end
-    # end
-
-    # return false
-    return any(o -> Obstacles.is_colliding(o, path, time_offset, tol), obs)
+    return any(
+        o -> Obstacles.is_colliding(o, path, time_offset, sampling_density, collision_tol),
+        obs,
+    )
 end
 
 """
@@ -315,17 +310,25 @@ function Obstacles.is_colliding(
     obs::VO,
     paths::VM,
     time_offset::F = 0.0,
-    tol::F = 1e-5,
+    sampling_density::F = 0.25, # resolution to sample the path
+    collision_tol::F = 1e-5,
 ) where {
     F<:Real,
     O<:AbstractObstacle,
     VO<:AbstractVector{O},
     VM<:AbstractVector{DubinsManeuver3D},
 }
-    cumulative_times = [0.0; cumsum([p.length for p in paths[1:end-1]])]
+    # cumulative_times = cumsum([0.0; getfield.(paths[1:end-1], :length)])
+    # cumulative_times = cumsum([0.0; getfield.(paths[1:end-1], :length)])
+    cumulative_times = [0.0; cumsum(p.length for p in paths[1:end-1])]
     return any(
-        Obstacles.is_colliding(obs, p, p_off + time_offset, tol) for
-        (p, p_off) in zip(paths, cumulative_times)
+        Obstacles.is_colliding(
+            obs,
+            p,
+            p_off + time_offset,
+            sampling_density,
+            collision_tol,
+        ) for (p, p_off) in zip(paths, cumulative_times)
     )
 end
 

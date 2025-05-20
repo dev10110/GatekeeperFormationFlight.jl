@@ -344,76 +344,76 @@ savefig(p, "3d_gatekeeper_paths.png")
 # Display the final visualization
 display(p)
 
-@show "Starting the Animation Process"
+# @show "Starting the Animation Process"
 
-sim_length = 100
+# sim_length = 100
 
-modified_range = range(0, TMax, length = sim_length)
-modified_range = vcat(modified_range, [TMax for i = 1:floor(Int, sim_length * 0.15)])
+# modified_range = range(0, TMax, length = sim_length)
+# modified_range = vcat(modified_range, [TMax for i = 1:floor(Int, sim_length * 0.15)])
 
-anim = @animate for (idx, t) in enumerate(modified_range)
-    println("Animation Time: $t")
+# anim = @animate for (idx, t) in enumerate(modified_range)
+#     println("Animation Time: $t")
 
-    # grab the states
-    robots_ = [Robot3(gk_solutions[i](t)) for i = 1:length(gk_solutions)]
+#     # grab the states
+#     robots_ = [Robot3(gk_solutions[i](t)) for i = 1:length(gk_solutions)]
 
-    # start the plot
-    plot()
+#     # start the plot
+#     plot()
 
-    # plot the reference paths
-    for off in offsets
-        plot!(
-            τ -> get_reference_state_and_input(
-                gk_instances[1].problem,
-                reference_trajectory,
-                off,
-                τ,
-            )[1][1],
-            τ -> get_reference_state_and_input(
-                gk_instances[1].problem,
-                reference_trajectory,
-                off,
-                τ,
-            )[1][2],
-            τ -> get_reference_state_and_input(
-                gk_instances[1].problem,
-                reference_trajectory,
-                off,
-                τ,
-            )[1][3],
-            0.0,
-            TMax;
-            label = false,
-            color = :gray,
-            linestyle = :dash,
-        )
-    end
+#     # plot the reference paths
+#     for off in offsets
+#         plot!(
+#             τ -> get_reference_state_and_input(
+#                 gk_instances[1].problem,
+#                 reference_trajectory,
+#                 off,
+#                 τ,
+#             )[1][1],
+#             τ -> get_reference_state_and_input(
+#                 gk_instances[1].problem,
+#                 reference_trajectory,
+#                 off,
+#                 τ,
+#             )[1][2],
+#             τ -> get_reference_state_and_input(
+#                 gk_instances[1].problem,
+#                 reference_trajectory,
+#                 off,
+#                 τ,
+#             )[1][3],
+#             0.0,
+#             TMax;
+#             label = false,
+#             color = :gray,
+#             linestyle = :dash,
+#         )
+#     end
 
-    # plot the trace of the robots upto this point in time
-    for i = 1:length(robots_)
-        plot!(
-            τ -> gk_solutions[i](τ)[1],
-            τ -> gk_solutions[i](τ)[2],
-            τ -> gk_solutions[i](τ)[3],
-            0.0,
-            t,
-            label = "gk_sol_$(i)",
-            color = (i == 1 ? :black : :green),
-            linewidth = 2,
-        )
-    end
+#     # plot the trace of the robots upto this point in time
+#     for i = 1:length(robots_)
+#         plot!(
+#             τ -> gk_solutions[i](τ)[1],
+#             τ -> gk_solutions[i](τ)[2],
+#             τ -> gk_solutions[i](τ)[3],
+#             0.0,
+#             t,
+#             label = "gk_sol_$(i)",
+#             color = (i == 1 ? :black : :green),
+#             linewidth = 2,
+#         )
+#     end
 
-    # Plot the obstacles
-    for obs in obstacles
-        plot!(obs)
-    end
+#     # Plot the obstacles
+#     for obs in obstacles
+#         plot!(obs)
+#     end
 
-    # plot the robots
-    for rob in robots_
-        plot!(rob)
-    end
+#     # plot the robots
+#     for rob in robots_
+#         plot!(rob)
+#     end
 
-    plot!(legend = false, camera = (Int(floor((idx / length(modified_range)) * 70)), 30))
-end
+#     plot!(legend = false, camera = (Int(floor((idx / length(modified_range)) * 70)), 30))
+# end
 
-gif(anim, "3d_gatekeeper.gif")
+# gif(anim, "3d_gatekeeper.gif")

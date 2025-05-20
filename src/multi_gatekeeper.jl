@@ -43,43 +43,65 @@ end
 """
     simulate_closed_loop_gatekeeper(gk::MultiGatekeeperProblem, initial_state, timespan)
 """
-function simulate_closed_loop_gatekeeper(
+function Gatekeeper.simulate_closed_loop_gatekeeper(
     gk::GatekeeperInstance{GP},
-    initial_state::AbstractMatrix,
+    initial_state,
     timespan,
 ) where {GP<:MultiGatekeeperProblem}
     n_agents::Int = size(initial_state, 1)
     state_dim::Int = size(initial_state, 2)
-    @info "Simulating closed-loop gatekeeper algorithm for $(n_agents) agents"
+
+    print_simulation_banner(n_agents)
 
     # Build candidate trajectory incrementally, agent by agent
     # Each agent greedily finds a candidate trajectory that is collision free
     candidate_trajectory = CompositeTrajectory(
-        Vector{Any}(nothing, n_agents),  # or use the specific type if known
-        Vector{Any}(nothing, n_agents),
-        Vector{Float64}(nothing, n_agents),
+        Vector{Any}(),  # or use the specific type if known
+        Vector{Any}(),
+        Vector{Float64}(),
     )
+
     for agent_idx = 1:n_agents
-        try_update_agent_committed!(
+        @debug "Constructing candidate trajectory for agent $(agent_idx)"
+
+        # Add room to the candidate trajectory for the agent
+        push!(candidate_trajectory.nominal, nothing)
+        push!(candidate_trajectory.backup, nothing)
+        push!(candidate_trajectory.switch_time, 0.0)
+
+        success = try_update_agent_committed!(
             candidate_trajectory,
             gk,
             initial_state,
             agent_idx,
             timespan[1],
         )
-        if isnothing(candidate_trajectory.backup[agent_idx])
+        if !success
             @error "No candidate trajectory found for agent $(agent_idx). Cannot proceed with simulation."
             return nothing
         end
     end
 
-    params = (gk, first_candidate_trajectory)
+    @info "Candidate trajectory found for all agents"
+
+    params = (gk, candidate_trajectory)
 
     odeproblem =
         ODEProblem(multi_closed_loop_tracking_composite!, initial_state, timespan, params)
 
     update_committed_callback =
         IterativeCallback(min_switch_time_gatekeeper, update_agent_committed_callback!)
+
+    # Setup progress bar
+    # t0, tf = timespan
+    # prog = Progress(floor(Int, tf - t0); desc = "Simulating", barlen = 30)
+
+    # function progress_func(integrator)
+    #     ProgressMeter.next!(prog, integrator.t - t0)
+    #     return false
+    # end
+
+    # progress_callback = DiscreteCallback((u, t, integrator) -> true, progress_func)
 
     odesol_gatekeeper = solve(
         odeproblem,
@@ -113,7 +135,7 @@ If time < min(switch_time) then all agents are in the nominal trajectory phase. 
 need to update the committed trajectory yet, so the next time to update is the min of the switch times + the step size
 """
 function min_switch_time_gatekeeper(integrator)
-    time = integator.t
+    time = integrator.t
     params = integrator.p
     gk, committed_traj = integrator.p
 
@@ -163,16 +185,16 @@ function multi_closed_loop_tracking_composite!(D, state, params, time::Float64)
     for agent = 1:n_agents
         if time <= Ts[agent]
             Gatekeeper.closed_loop_tracking_nominal!(
-                view(D, agent),
-                state[agent],
+                view(D, agent, :),
+                state[agent, :],
                 get_single_agent_subproblem(gk.problem, agent),
                 time,
             )
         else
             Gatekeeper.closed_loop_tracking_backup!(
-                view(D, agent),
+                view(D, agent, :),
                 get_single_agent_subproblem(gk.problem, agent),
-                state[agent],
+                state[agent, :],
                 committed_traj.backup[agent],
                 time - Ts[agent],
             )
@@ -193,6 +215,8 @@ Attempt to update the committed trajectory for a single agent. Modifies committe
     for the agent that is collision free with respect to all obstacles and other agents
 
 More or less solve the single agent problem with the other agents as dynamic obstacles
+
+Returns true if successful, false otherwise
 """
 function try_update_agent_committed!(
     committed_traj::CompositeTrajectory,
@@ -200,8 +224,7 @@ function try_update_agent_committed!(
     state,
     agent_idx::Int,
     time,
-) where {GP<:MultiGatekeeperProblem}
-
+)::Bool where {GP<:MultiGatekeeperProblem}
     # Convert to a single agent problem with dynamic obstacles!
     agent_gk = GatekeeperInstance(
         get_single_agent_subproblem(gk.problem, agent_idx, committed_traj),
@@ -209,8 +232,11 @@ function try_update_agent_committed!(
     )
 
     # Get the agent's nominal trajectory (until collision)
-    nominal_solution =
-        Gatekeeper.construct_candidate_nominal_trajectory(agent_gk, state[agent_idx], time)
+    nominal_solution = Gatekeeper.construct_candidate_nominal_trajectory(
+        agent_gk,
+        state[agent_idx, :],
+        time,
+    )
 
     nominal_end_time = nominal_solution.t[end]
 
@@ -230,9 +256,18 @@ function try_update_agent_committed!(
             committed_traj.nominal[agent_idx] = nominal_solution
             committed_traj.backup[agent_idx] = backup_path
             committed_traj.switch_time[agent_idx] = switch_time
-            return
+            return true
         end
     end
+    return false
+end
+
+function print_simulation_banner(n_agents::Int)
+    println("===============================================")
+    println("      Multi-Agent Gatekeeper Simulation        ")
+    println("===============================================")
+    println("Number of agents: $n_agents")
+    println("===============================================")
 end
 
 end # module MultiGatekeeper

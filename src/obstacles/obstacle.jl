@@ -145,6 +145,10 @@ struct TimeVaryingSphere{F} <: AbstractDynamicObstacle where {F<:Real}
     radius::F
 end
 
+function TimeVaryingSphere(pos_at_t::Function, radius::F) where {F<:Real}
+    return TimeVaryingSphere{F}(pos_at_t, radius)
+end
+
 function TimeVaryingSphere(gk_solution, radius::F) where {F<:Real}
     pos_at_t = t -> SVector{3,F}(gk_solution(t)[1], gk_solution(t)[2], gk_solution(t)[3])
     return TimeVaryingSphere(pos_at_t, radius)
@@ -155,7 +159,12 @@ function collision_distance(
     x::AbstractVector{F},
     t::Float64,
 ) where {F<:Real}
-    return norm(s.pos_at_t(t) - x) - s.radius
+    pos = s.pos_at_t(t)
+    n = length(pos)
+
+    # Avoid allocation: use view if slicing is needed
+    x_n = (length(x) == n) ? x : @view x[1:n]
+    return norm(pos .- x_n) - s.radius
 end
 
 
