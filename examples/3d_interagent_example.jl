@@ -1,5 +1,6 @@
 using GatekeeperFormationFlight
 using Plots, LinearAlgebra, StaticArrays, Random
+using LaTeXStrings
 
 using Dubins3D
 
@@ -295,9 +296,32 @@ plot!(
     color = :red,
 )
 
+p4 = plot(size = (400, 800), xlabel = "Time (t)", ylabel = L"||x(t) - x_\text{ref}(t)||_2")
 
-lay = @layout [a{0.5w} [b{0.5h}; c{0.5h}]]
-p = plot(p1, p2, p3, layout = lay, size = (1600, 800))
+## Plot the deviation from the reference trajectory
+for agent in eachindex(multi_gk_instance.problem.offset)
+    agent_states = hcat([s[agent, 1:3] for s in states]...)
+    subprob = get_single_agent_subproblem(multi_gk_instance.problem, agent)
+    plot!(
+        solution.t,
+        [
+            norm(
+                agent_states[:, i] - get_reference_state_and_input(
+                    subprob,
+                    multi_gk_instance.problem.reference_path,
+                    subprob.offset,
+                    solution.t[i],
+                )[1][1:3],
+            ) for i = 1:length(solution.t)
+        ],
+        label = "Deviation Agent $agent",
+    )
+end
+
+
+
+lay = @layout [a{0.5w} [b{0.4h}; c{0.3h}; d{0.3h}]]
+p = plot(p1, p2, p3, p4, layout = lay, size = (1600, 1200))
 display(p)
 
 savefig(p, "3d_gatekeeper_interagent.png")
@@ -305,80 +329,80 @@ savefig(p, "3d_gatekeeper_interagent.png")
 
 # ## ANIMATE
 
-@show "Starting Animation"
+# @show "Starting Animation"
 
-sim_length = 100
+# sim_length = 100
 
-modified_range = range(tspan[1], tspan[2], length = sim_length)
-modified_range = vcat(modified_range, [tspan[2] for i = 1:floor(Int, sim_length * 0.15)])
+# modified_range = range(tspan[1], tspan[2], length = sim_length)
+# modified_range = vcat(modified_range, [tspan[2] for i = 1:floor(Int, sim_length * 0.15)])
 
-anim = @animate for (idx, t) in enumerate(modified_range)
-    println("Animation Time: $t")
+# anim = @animate for (idx, t) in enumerate(modified_range)
+#     println("Animation Time: $t")
 
-    state_matrix = solution(t)
+#     state_matrix = solution(t)
 
-    # grab the states
-    robots_ = [Robot3(r) for r in eachrow(state_matrix)]
+#     # grab the states
+#     robots_ = [Robot3(r) for r in eachrow(state_matrix)]
 
-    # start the plot
-    plot()
+#     # start the plot
+#     plot()
 
-    # plot the reference paths
-    for agent in eachindex(robots_)
-        subproblem = get_single_agent_subproblem(multi_gk_instance.problem, agent)
-        plot!(
-            τ -> get_reference_state_and_input(
-                subproblem,
-                subproblem.reference_path,
-                subproblem.offset,
-                τ,
-            )[1][1],
-            τ -> get_reference_state_and_input(
-                subproblem,
-                subproblem.reference_path,
-                subproblem.offset,
-                τ,
-            )[1][2],
-            τ -> get_reference_state_and_input(
-                subproblem,
-                subproblem.reference_path,
-                subproblem.offset,
-                τ,
-            )[1][3],
-            tspan[1],
-            tspan[2],
-            linestyle = :dash,
-            label = false,
-            linecolor = :blue,
-            opacity = 0.5,
-        )
-    end
+#     # plot the reference paths
+#     for agent in eachindex(robots_)
+#         subproblem = get_single_agent_subproblem(multi_gk_instance.problem, agent)
+#         plot!(
+#             τ -> get_reference_state_and_input(
+#                 subproblem,
+#                 subproblem.reference_path,
+#                 subproblem.offset,
+#                 τ,
+#             )[1][1],
+#             τ -> get_reference_state_and_input(
+#                 subproblem,
+#                 subproblem.reference_path,
+#                 subproblem.offset,
+#                 τ,
+#             )[1][2],
+#             τ -> get_reference_state_and_input(
+#                 subproblem,
+#                 subproblem.reference_path,
+#                 subproblem.offset,
+#                 τ,
+#             )[1][3],
+#             tspan[1],
+#             tspan[2],
+#             linestyle = :dash,
+#             label = false,
+#             linecolor = :blue,
+#             opacity = 0.5,
+#         )
+#     end
 
-    # plot the trace of the robots upto this point in time
-    for i = 1:length(robots_)
-        plot!(
-            τ -> solution(τ)[i, 1],
-            τ -> solution(τ)[i, 2],
-            τ -> solution(τ)[i, 3],
-            tspan[1],
-            tspan[2],
-            label = "gk_sol_$(i)",
-            color = (i == 1 ? :black : :green),
-            linewidth = 2,
-        )
-    end
+#     # plot the trace of the robots upto this point in time
+#     for i = 1:length(robots_)
+#         plot!(
+#             τ -> solution(τ)[i, 1],
+#             τ -> solution(τ)[i, 2],
+#             τ -> solution(τ)[i, 3],
+#             tspan[1],
+#             tspan[2],
+#             label = "gk_sol_$(i)",
+#             color = (i == 1 ? :black : :green),
+#             linewidth = 2,
+#         )
+#     end
 
-    # Plot the obstacles
-    for obs in obstacles
-        plot!(obs)
-    end
+#     # Plot the obstacles
+#     for obs in obstacles
+#         plot!(obs)
+#     end
 
-    # plot the robots
-    for rob in robots_
-        plot!(rob)
-    end
+#     # plot the robots
+#     for rob in robots_
+#         plot!(rob)
+#     end
 
-    plot!(legend = false, camera = (Int(floor((idx / length(modified_range)) * 70)), 30))
-end
+#     plot!(legend = false, camera = (Int(floor((idx / length(modified_range)) * 70)), 30))
+# end
 
-gif(anim, "3d_interagent_gatekeeper.gif")
+# gif(anim, "3d_interagent_gatekeeper.gif")

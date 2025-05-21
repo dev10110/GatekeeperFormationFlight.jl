@@ -204,7 +204,7 @@ end
     seriestype := :surface
     colorbar --> false
     label --> false
-    alpha := 0.5
+    alpha := 0.3
 
     u = range(0, 2π, length = 30)  # Angular parameter (around cylinder)
     h = range(0, height, length = 30)  # Height parameter (up the cylinder)
