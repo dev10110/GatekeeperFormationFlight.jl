@@ -10,7 +10,7 @@ export AbstractObstacle, AbstractStaticObstacle, AbstractDynamicObstacle, Abstra
 export is_colliding, collision_distance
 
 # Generic Obstacles
-export PlotCircle, Sphere, Cylinder, TimeVaryingSphere
+export PlotCircle, Sphere, Cylinder, GroundedHalfDome, TimeVaryingSphere
 
 # Wezes
 export Cardioid, CircularWez, Cbez

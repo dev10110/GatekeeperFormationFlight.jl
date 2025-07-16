@@ -92,15 +92,23 @@ function Gatekeeper.simulate_closed_loop_gatekeeper(
     update_committed_callback =
         IterativeCallback(min_switch_time_gatekeeper, update_agent_committed_callback!)
 
+    saved_composites = SavedValues(Float64, CompositeTrajectory)
+    saving_callback =
+        SavingCallback((u, t, integrator) -> deepcopy(integrator.p[2]), saved_composites)
+
+    callbacks = CallbackSet(update_committed_callback, saving_callback)
+
     odesol_gatekeeper = solve(
         odeproblem,
         Tsit5(),
         dtmax = gk.coefficients.integration_max_step_size,
         dt = gk.coefficients.integration_step_size,
-        callback = update_committed_callback,
+        callback = callbacks,
     )
 
-    return odesol_gatekeeper
+    @info "Simulation complete. Returning solution."
+
+    return odesol_gatekeeper, saved_composites
 end
 
 # ========== PRIVATE FUNCTIONS ==========

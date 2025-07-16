@@ -84,6 +84,13 @@ function collision_distance(
     return minimum(o -> collision_distance(o, x, time), obstacles; init = Inf)
 end
 
+# function collision_distance(
+#     obstacle::O,
+#     x::VF,
+# ) where {O<:AbstractStaticObstacle,F<:Real,VF<:AbstractVector{F}}
+#     return collision_distance(obstacle, @SVector [x[1], x[2], x[3]])
+# end
+
 ###############################################################
 ### Spherical #################################################
 ###############################################################
@@ -110,6 +117,31 @@ function collision_distance(s::Sphere, x::SVector{3,F}) where {F}
 
     # return the distance to collision
     return d - s.R
+end
+
+function collision_distance(s::Sphere, x::AbstractVector{F}) where {F<:Real}
+    diff = @SVector [x[1] - s.pos[1], x[2] - s.pos[2], x[3] - s.pos[3]]
+    return norm(diff) - s.R
+end
+
+struct GroundedHalfDome{F} <: AbstractStaticObstacle where {F<:Real}
+    pos::SVector{2,F}
+    R::F
+end
+
+function GroundedHalfDome(x::F, y::F, r::F) where {F<:Real}
+    return GroundedHalfDome(SVector{2,F}([x, y]), r)
+end
+
+function collision_distance(s::GroundedHalfDome, x::AbstractVector{F}) where {F<:Real}
+    # Calculate the distance to the center of the dome
+    diff = @SVector [x[1] - s.pos[1], x[2] - s.pos[2], x[3]]
+    return norm(diff) - s.R
+end
+
+function collision_distance(s::GroundedHalfDome, x::SVector{3,F}) where {F<:Real}
+    diff = @SVector [x[1] - s.pos[1], x[2] - s.pos[2], x[3]]
+    return norm(diff) - s.R
 end
 
 ###############################################################
@@ -185,6 +217,22 @@ end
     x, y, z
 end
 
+@recipe function plot_dome(s::O) where {O<:GroundedHalfDome}
+    seriestype := :surface
+    colorbar --> false
+    label --> false
+    alpha --> 0.3
+
+    u = range(0, 2π, length = 30)
+    v = range(0, π / 2, length = 30)  # Only upper hemisphere
+
+    x = s.pos[1] .+ s.R * cos.(u) * sin.(v)'
+    y = s.pos[2] .+ s.R * sin.(u) * sin.(v)'
+    z = s.R * ones(length(u)) * cos.(v)'  # z position is zero at base
+
+    x, y, z
+end
+
 # @recipe function plot_cylinder(c::Cylinder)
 #     seriestype := :surface
 #     alpha --> 0.8
@@ -220,17 +268,23 @@ end
 struct PlotCircle{F}
     center::SVector{2,F}
     radius::F
+    color::Any
 end
+
 PlotCircle(cylinder::Cylinder) = PlotCircle(
     SVector{2,Float64}([cylinder.center[1], cylinder.center[2]]),
     cylinder.radius,
+    :black,
 )
+PlotCircle(o::GroundedHalfDome) =
+    PlotCircle(SVector{2,Float64}([o.pos[1], o.pos[2]]), o.R, :purple)
 
+PlotCircle(s::Sphere) = PlotCircle(SVector{2,Float64}([s.pos[1], s.pos[2]]), s.R, :orange)
 
 @recipe function plot_circle(c::PlotCircle)
     seriestype := :path
     alpha --> 0.8
-    color --> :blue
+    color --> c.color
     linewidth --> 2
 
     u = range(0, 2π, length = 30)

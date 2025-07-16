@@ -12,7 +12,7 @@ export GatekeeperInstance, GatekeeperCoefficients
 export GKDubinsWezes2D, GKDubinsObs3D, GKDubinsObs3DInterAgent
 
 # 3D Exports
-export Robot3, Sphere, Cylinder, PlotCircle
+export Robot3, Sphere, Cylinder, PlotCircle, GroundedHalfDome, TimeVaryingSphere
 export Dubins3DRRTProblem
 
 export wez_coordinates

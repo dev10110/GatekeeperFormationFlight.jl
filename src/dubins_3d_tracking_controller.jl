@@ -89,7 +89,7 @@ function tracking_controller(
     k4::F = 1.0, # pitch error gain
 )::SVector{3,F} where {F<:Real}
     # Extract States
-    x, y, z, yaw, pitch = state  # pitch from state, but will be set as control
+    x, y, z, yaw = state[1:4]  # pitch from state, but will be set as control
     xr, yr, zr, yaw_r = state_d
     vr, ωyaw_r, pitch_r = input_d  # pitch_r is the desired pitch input
 
@@ -203,42 +203,35 @@ function get_reference_state_and_input(
     @assert !isnothing(idx) "Time is out of bounds"
 
     # find relative time in the segment
-    τ = idx == 1 ? time : time - cumulative_lengths[idx-1]
+    # τ = idx == 1 ? time : time - cumulative_lengths[idx-1]
+    τ = idx == 1 ? 0 : cumulative_lengths[idx-1]
+    time = time - τ
 
-    if τ == path[idx].length
+    if time == path[idx].length
         # if τ is exactly the end of the segment, we need to go to the next segment
+        time = time - path[idx].length
         idx += 1
-        τ = 0.0
     end
 
+    # compute the state at the given time
+    state = Dubins3D.compute_at_len(path[idx], time)
 
-    # normalize time to the segment length
-    # τ_fractional = τ / segment_lengths[idx]
-    # state_idx = clamp(ceil(Int, τ_fractional * 1000), 1, 1000)
-
-    # states = compute_sampling(path[idx]; numberOfSamples = 1000)
-    # state = states[state_idx]
-    # state = states[:, state_idx]
-    state = Dubins3D.compute_at_len(path[idx], τ)
-
-    # reference states
+    # Extract the Reference State Components
     x, y, z, yaw, pitch = state
     yaw = wrapToPi(yaw)
 
-    # estimate ω by taking the difference between the current and next state yaw
-    # then estimate the time step by the segment length divided by the number of samples
-    # Δt = segment_lengths[idx] / 1000
+    # estimate ω by approximating the tangent line
     Δt = 1e-3
 
     ω = 0.0
     v = 1.0
     # if state_idx < size(states, 2) - 1
 
-    if τ + Δt < path[idx].length
-        next_state = Dubins3D.compute_at_len(path[idx], τ + Δt)
+    if time + Δt < path[idx].length
+        next_state = Dubins3D.compute_at_len(path[idx], time + Δt)
         Δω = next_state[4] - yaw
         ω = Δω / Δt # needs to change by Δω over Δt
-    elseif τ + Δt >= path[idx].length && idx < length(path)
+    elseif time + Δt >= path[idx].length && idx < length(path)
         next_state = path[idx+1].qi
         Δω = next_state[4] - yaw
         ω = Δω / Δt # needs to change by Δω over Δt
@@ -256,16 +249,16 @@ get the `(x_d, u_d)` to follow a `path` at some `time`
 """
 function get_reference_state_and_input(
     path::Vector{DubinsManeuver3D},
-    time::F,
-    offset::SVector{3,F},
-) where {F<:Real}
+    time::F1,
+    offset::SVector{3,F2},
+) where {F1<:Real,F2<:Real}
     # TODO Time
     x_d, u_d = get_reference_state_and_input(path, time)
     x, y, z, yaw, pitch = x_d
     # pitch = u_d[3]
 
 
-    R::SMatrix{3,3,F} = get_transformation_matrix(yaw, 0.0, 0.0)
+    R::SMatrix{3,3,F1} = get_transformation_matrix(yaw, 0.0, 0.0)
     # @show yaw
     # @show R_body_to_world
     body_offset = R * offset

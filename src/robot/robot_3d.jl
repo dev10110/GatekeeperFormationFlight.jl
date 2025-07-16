@@ -39,34 +39,54 @@ end
 
 
 @recipe function plot_robot3!(r::Robot3)
+
+    # normalize the rotation vector
+    # Convert yaw, pitch, roll to a direction unit vector (assuming ZYX order)
+    yaw, pitch, roll = r.rot
+    # Direction vector in robot's local frame (forward along x)
+    local_dir = SVector(1.0, 0.0, 0.0)
+
+    # Create rotation matrices using LinearAlgebra
+    # Rotation around z-axis (yaw)
+    sz, cz = sin(yaw), cos(yaw)
+    Rz = SMatrix{3,3}([cz -sz 0; sz cz 0; 0 0 1])
+
+    # Rotation around y-axis (pitch)
+    sy, cy = sin(pitch), cos(pitch)
+    Ry = SMatrix{3,3}([cy 0 sy; 0 1 0; -sy 0 cy])
+
+    # Rotation around x-axis (roll)
+    sx, cx = sin(roll), cos(roll)
+    Rx = SMatrix{3,3}([1 0 0; 0 cx -sx; 0 sx cx])
+
+    # Apply rotations: R = Rz * Ry * Rx (ZYX order)
+    global_dir = Rz * Ry * Rx * local_dir
+    rot_unit_vector = normalize(global_dir)
+    arrow_length = 15.0
+    # Calculate endpoint of the direction arrow
+    end_point = r.pos .+ arrow_length * rot_unit_vector
+
+    @series begin
+        seriestype := :path3d
+        label := false
+        color := :black
+        aspect_ratio := :equal
+        linewidth := 1.5
+        opacity := 0.8
+        # For 3D lines, we need x, y, z vectors where each element corresponds to a point
+        [r.pos[1], end_point[1]], [r.pos[2], end_point[2]], [r.pos[3], end_point[3]]
+    end
+
+
     # plot the origin marker
     @series begin
         seriestype := :scatter
-        label -> false
-        color -> :black
-        marker -> :dot
-        markersize -> 5
-        aspect_ratio -> :equal
+        label := false
+        # color := :black
+        marker := :dot
+        markersize := 5
+        aspect_ratio := :equal
         [r.pos[1]], [r.pos[2]], [r.pos[3]]
-    end
-
-    # normalize the rotation vector
-    rot_unit_vector = normalize(r.rot)
-
-    # plot arrow in direction of the rotation vector
-    @series begin
-        seriestype := :path
-        linewidth -> 2
-        arrowhead_length -> 0.1
-        arrowhead_width -> 0.1
-        label -> false
-        color -> :black
-        marker -> false
-        arrow -> true
-        aspect_ratio -> :equal
-        [r.pos[1], r.pos[1] + 0.5 * rot_unit_vector[1]],
-        [r.pos[2], r.pos[2] + 0.5 * rot_unit_vector[2]],
-        [r.pos[3], r.pos[3] + 0.5 * rot_unit_vector[3]]
     end
 end
 
