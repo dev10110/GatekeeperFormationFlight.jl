@@ -208,7 +208,7 @@ end
     alpha --> 0.8
 
     u = range(0, 2π, length = 30)
-    v = range(0, π, length = 30)
+    v = range(0, π, length = 30)>
 
     x = s.pos[1] .+ s.R * cos.(u) * sin.(v)'
     y = s.pos[2] .+ s.R * sin.(u) * sin.(v)'
