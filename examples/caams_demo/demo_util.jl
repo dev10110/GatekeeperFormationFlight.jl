@@ -118,7 +118,7 @@ function solve_leader_path!(env::SimEnvironment)::Bool
     ]
 
     success, waypoints =
-        ExampleUtils3D.solve_3d_rrt(x0, xg, rrt_problem; rrt_iterations = 400)
+        ExampleUtils3D.solve_3d_rrt(x0, xg, rrt_problem; rrt_iterations = 1200)
 
     if !success
         return false
@@ -176,7 +176,11 @@ function solve_gk_problem!(env::SimEnvironment)::Bool
     return true
 end
 
-function write_to_file(env::SimEnvironment, file_name::String, t_resolution::Float64 = 0.01)
+function write_to_file(
+    env::SimEnvironment,
+    file_name::String,
+    t_resolution::Float64 = 0.005,
+)
     """
     Writes the results of the simulation to a file using a DataFrame.
     """
@@ -211,7 +215,7 @@ end
 
 function fit_polynomials(
     data::DataFrame;
-    chunk_size::Int = 20,
+    chunk_size::Int = 40,
     poly_degree::Int = 8,
     trajectory_time::Float64 = 20.0,
 )
