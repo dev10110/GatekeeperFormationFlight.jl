@@ -231,22 +231,41 @@ function fit_polynomials(
             x = [agent_data[j].pos_x for j = i:idx_end]
             y = [agent_data[j].pos_y for j = i:idx_end]
             z = [agent_data[j].pos_z for j = i:idx_end]
+            yaw = [agent_data[j].heading for j = i:idx_end]
 
             px = fit(t_chunk, x, poly_degree)
             py = fit(t_chunk, y, poly_degree)
             pz = fit(t_chunk, z, poly_degree)
+            pyaw = fit(t_chunk, yaw, poly_degree)
 
-            push!(
-                chunk_polys,
-                (
-                    agent_id = agent,
-                    t_start = t_chunk[1],
-                    t_end = t_chunk[end],
-                    px = px,
-                    py = py,
-                    pz = pz,
-                ),
-            )
+            # println("Px: $px, Py: $py, Pz: $pz, Pyaw: $pyaw")
+
+            names = [:agent_id, :duration]
+            values = [agent, t_chunk[end]]
+
+            for ind = 0:poly_degree
+                coeff = ind <= degree(px) ? coeffs(px)[ind+1] : 0.0
+                push!(names, Symbol("x^$ind"))
+                push!(values, coeff)
+            end
+            for ind = 0:poly_degree
+                coeff = ind <= degree(py) ? coeffs(py)[ind+1] : 0.0
+                push!(names, Symbol("y^$ind"))
+                push!(values, coeff)
+            end
+            for ind = 0:poly_degree
+                coeff = ind <= degree(pz) ? coeffs(pz)[ind+1] : 0.0
+                push!(names, Symbol("z^$ind"))
+                push!(values, coeff)
+            end
+            for ind = 0:poly_degree
+                coeff = ind <= degree(pyaw) ? coeffs(pyaw)[ind+1] : 0.0
+                push!(names, Symbol("yaw^$ind"))
+                push!(values, coeff)
+            end
+
+            res = (; zip(names, values)...)
+            push!(chunk_polys, res)
         end
 
     end
