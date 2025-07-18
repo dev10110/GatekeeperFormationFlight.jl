@@ -168,6 +168,10 @@ function plot_interagent_solution(solution, gk)
 
     # Pass colors to plotting functions
     p1 = plot_3d_scenario(solution, gk; agent_colors = agent_colors, add_legend = true)
+    xlims!(p1, -2, 2)  # Set x-axis limits
+    ylims!(p1, -2, 2)  # Set y-axis limits
+    zlims!(p1, 0, 2)  # Set z-axis limits
+
     p2 = plot_2d_projection(solution, gk; agent_colors = agent_colors)
     p3 = plot_min_interagent_distance(solution, gk)
     p4 = plot_deviation(solution, gk; agent_colors = agent_colors)

@@ -9,8 +9,8 @@ function parse_commandline()
 
     @add_arg_table s begin
         "env"
-            help = "File containing the environment description"
-            required = true
+        help = "File containing the environment description"
+        required = true
     end
 
     return parse_args(s)
@@ -42,16 +42,18 @@ function main()
 
     @info "Saving intermediate result to file..."
 
-    result_file_name = "result_file.csv"
+    result_file_name = "scenarios/$(env.scenario.name)_result.csv"
+    DemoUtil.write_to_file(env, result_file_name)
     @info "Results written to $result_file_name"
     println("")
 
     @info "Fitting polynomials to the final trajectories."
-
+    polynomials = DemoUtil.fit_polynomials!(env.data)
     @info "Success! Writing to file."
 
 
-    trajectory_file_name = "trajectory_file.csv"
+    trajectory_file_name = "scenarios/$(env.scenario.name)_trajectories.csv"
+    DemoUtil.write_polynomials_to_file(polynomials, trajectory_file_name)
     @info "Trajectories written to $trajectory_file_name"
 end
 

@@ -1,0 +1,73 @@
+agents:
+  - offset:
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+    id: 1
+  - offset:
+      - 0.0
+      - 0.0
+      - 1.0
+      - 0.0
+      - 0.0
+    id: 2
+  - offset:
+      - 0.0
+      - 1.0
+      - 0.0
+      - 0.0
+      - 0.0
+    id: 3
+scenario:
+  start_pose:
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+  domain_min:
+    - -1.0
+    - -1.0
+    - 0.0
+  name: "demo_scenario"
+  domain_max:
+    - 1.0
+    - 1.0
+    - 2.0
+  goal_pose:
+    - 1.0
+    - 1.0
+    - 1.0
+    - 0.0
+    - 0.0
+obstacles:
+  - radius: 0.5
+    position:
+      - 1.5
+      - 1.5
+      - 0.0
+    type: "Cylinder"
+  - radius: 0.5
+    position:
+      - 2.5
+      - 1.5
+      - 1.5
+    type: "Sphere"
+agent_settings:
+  turn_radius: 0.5
+  pitch_limits:
+    - -0.7853981633974483
+    - 0.7853981633974483
+  v_min: 0.8
+  v_max: 1.0
+  x_padding: 0.1
+  agent_radius: 0.125
+gatekeeper_coefficients:
+  reconnection_step_size: 0.125
+  max_Ts_horizon: 10.0
+  integration_step_size: 0.01
+  collision_check_step_size: 0.05
+  switch_step_size: 0.5
+  integration_max_step_size: 0.05
