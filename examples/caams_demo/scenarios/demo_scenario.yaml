@@ -22,8 +22,8 @@ agents:
     id: 3
 scenario:
   start_pose:
-    - 0.0
-    - 0.0
+    - -1.0
+    - -1.0
     - 0.5 # adjust for takeoff height
     - 0.0
     - 0.0
@@ -67,7 +67,7 @@ agent_settings:
 gatekeeper_coefficients:
   reconnection_step_size: 0.125
   max_Ts_horizon: 10.0
-  integration_step_size: 0.01
+  integration_step_size: 0.001
   collision_check_step_size: 0.05
-  switch_step_size: 0.5
-  integration_max_step_size: 0.05
+  switch_step_size: 0.1
+  integration_max_step_size: 0.005

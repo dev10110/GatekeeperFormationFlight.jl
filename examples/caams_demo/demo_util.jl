@@ -217,7 +217,7 @@ function fit_polynomials(
     data::DataFrame;
     chunk_size::Int = 40,
     poly_degree::Int = 7,
-    trajectory_time::Float64 = 20.0,
+    trajectory_time::Float64 = 30.0,
 )
     agents = unique(data.agent_id)
 
