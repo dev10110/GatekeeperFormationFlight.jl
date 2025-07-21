@@ -31,10 +31,10 @@ scenario:
     - -3.0
     - -2.0
     - 0.0
-  name: "demo_scenario"
+  name: "demo_scenario_2"
   domain_max:
     - 2.0
-    - 2.0
+    - 1.5
     - 2.0
   goal_pose:
     - 1.8
@@ -43,7 +43,7 @@ scenario:
     - 0.0
     - 0.0
 obstacles:
-  - radius: 0.5
+  - radius: 0.75
     position:
       - 0.0
       - 0.0
