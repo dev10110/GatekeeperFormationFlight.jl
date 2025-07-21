@@ -133,7 +133,7 @@ function visualize_baseline_2d(obstacles, reference_trajectory)
     function plot_at_t(t)
         idx = findfirst(x -> x >= t, cumulative_lengths)
         if isnothing(idx)
-            return
+            return [0.0, 0.0]
         end
 
         maneuver = reference_trajectory[idx]

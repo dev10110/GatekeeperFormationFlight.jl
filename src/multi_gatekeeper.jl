@@ -62,7 +62,7 @@ function Gatekeeper.simulate_closed_loop_gatekeeper(
     )
 
     for agent_idx = 1:n_agents
-        @debug "Constructing candidate trajectory for agent $(agent_idx)"
+        @info "Constructing candidate trajectory for agent $(agent_idx) at x0 = $(initial_state[agent_idx, :])"
 
         # Add room to the candidate trajectory for the agent
         push!(candidate_trajectory.nominal, nothing)
@@ -78,7 +78,7 @@ function Gatekeeper.simulate_closed_loop_gatekeeper(
         )
         if !success
             @error "No candidate trajectory found for agent $(agent_idx). Cannot proceed with simulation."
-            return nothing
+            return nothing, nothing
         end
     end
 
@@ -236,6 +236,7 @@ function try_update_agent_committed!(
     )
 
     if isnothing(nominal_solution)
+        @warn "No nominal solution found for agent $(agent_idx) at time $(time). Cannot update committed trajectory."
         return false
     end
 
@@ -263,6 +264,8 @@ function try_update_agent_committed!(
             return true
         end
     end
+
+    @warn "Failed to find valid switch time. Returning nothing."
     return false
 end
 
