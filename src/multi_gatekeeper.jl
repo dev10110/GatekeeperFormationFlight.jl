@@ -51,7 +51,7 @@ function Gatekeeper.simulate_closed_loop_gatekeeper(
     n_agents::Int = size(initial_state, 1)
     state_dim::Int = size(initial_state, 2)
 
-    print_simulation_banner(n_agents)
+    print_simulation_banner(n_agents, timespan)
 
     # Build candidate trajectory incrementally, agent by agent
     # Each agent greedily finds a candidate trajectory that is collision free
@@ -275,11 +275,12 @@ function filtered_candidate_backup_trajectory(
 
 end
 
-function print_simulation_banner(n_agents::Int)
+function print_simulation_banner(n_agents::Int, timespan)
     println("===============================================")
     println("      Multi-Agent Gatekeeper Simulation        ")
     println("===============================================")
     println("Number of agents: $n_agents")
+    println("Timespan: [$(timespan[1]), $(timespan[2])]")
     println("===============================================")
 end
 

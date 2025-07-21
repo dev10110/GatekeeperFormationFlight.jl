@@ -158,7 +158,10 @@ function solve_gk_problem!(env::SimEnvironment)::Bool
 
     multi_gk_instance = GatekeeperInstance(multi_gk_problem, env.gatekeeper_coefficients)
 
-    initial_positions = [env.scenario.start_pose + agent.offset for agent in env.agents]
+    initial_positions = [
+        env.scenario.start_pose + SVector{5,Float64}(offset..., 0.0, 0.0) for
+        offset in offsets
+    ]
     initial_positions = reduce(hcat, initial_positions)'
     tspan = [0.0, sum(x -> x.length, env.leader_path)]
 
@@ -187,7 +190,10 @@ function write_to_file(
     data = Vector{Dict{Symbol,Any}}()
 
     t_start = env.solution.t[1]
-    t_end = env.solution.t[end]
+    t_end = sum(x -> x.length, env.leader_path)
+    # t_end = env.solution.t[end] # Use this if you want to use the full sim that may exceed
+    # desired runtime
+
     t_length = t_end - t_start
 
     for t = t_start:t_resolution:t_end

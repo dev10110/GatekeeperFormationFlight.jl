@@ -159,7 +159,7 @@ function visualize_baseline_2d(obstacles, reference_trajectory)
     return p
 end
 
-function plot_interagent_solution(solution, gk)
+function plot_interagent_solution(solution, gk; dims_min = nothing, dims_max = nothing)
     # Assign a color for each agent
     n_agents = length(gk.problem.offset)
 
@@ -168,9 +168,13 @@ function plot_interagent_solution(solution, gk)
 
     # Pass colors to plotting functions
     p1 = plot_3d_scenario(solution, gk; agent_colors = agent_colors, add_legend = true)
-    xlims!(p1, -2, 2)  # Set x-axis limits
-    ylims!(p1, -2, 2)  # Set y-axis limits
-    zlims!(p1, 0, 5)  # Set z-axis limits
+
+    if dims_min !== nothing && dims_max !== nothing
+        # Set the limits based on the provided dimensions
+        xlims!(p1, dims_min[1], dims_max[1])
+        ylims!(p1, dims_min[2], dims_max[2])
+        zlims!(p1, dims_min[3], dims_max[3])
+    end
 
     p2 = plot_2d_projection(solution, gk; agent_colors = agent_colors)
     p3 = plot_min_interagent_distance(solution, gk)
