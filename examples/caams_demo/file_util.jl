@@ -11,6 +11,8 @@ function obstacle_to_dict(obs::ASO)
         return Dict("type" => "Sphere", "radius" => obs.R, "position" => obs.pos)
     elseif obs isa GroundedHalfDome
         return Dict("type" => "GroundedHalfDome", "radius" => obs.R, "position" => obs.pos)
+    elseif obs isa FPVGate
+        return Dict("type" => "FPVGate", "position" => obs.pos)
     else
         error("Unsupported obstacle type: $(typeof(obs))")
     end
@@ -25,6 +27,8 @@ function dict_to_obstacle(d)
         return Sphere(d[:position]..., d[:radius])
     elseif obs_type == "GroundedHalfDome"
         return GroundedHalfDome(d[:position]..., d[:radius])
+    elseif obs_type == "FPVGate"
+        return FPVGate(d[:position]...)
     else
         error("Unsupported obstacle type: $obs_type")
     end

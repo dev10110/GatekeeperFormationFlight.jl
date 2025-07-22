@@ -117,12 +117,18 @@ function visualize_baseline(obstacles, reference_trajectory)
     return p
 end
 
-function visualize_baseline_2d(obstacles, reference_trajectory)
+function visualize_baseline_2d(
+    obstacles,
+    reference_trajectory;
+    dims_max = nothing,
+    dims_min = nothing,
+)
     p = plot(aspect_ratio = :equal, size = (600, 600), legend = false)
 
     # Display the obstacles
     for obs in obstacles
-        plot!(PlotCircle(obs), label = false, linedwidth = 2)
+        repr = get_2d_repr(obs)
+        plot!(repr, label = false, linedwidth = 2)
     end
 
     maneuver_lengths = [maneuver.length for maneuver in reference_trajectory]
@@ -145,6 +151,11 @@ function visualize_baseline_2d(obstacles, reference_trajectory)
         return pos[1:2]
     end
 
+    if dims_min !== nothing && dims_max !== nothing
+        # Set the limits based on the provided dimensions
+        xlims!(p, dims_min[1], dims_max[1])
+        ylims!(p, dims_min[2], dims_max[2])
+    end
     plot!(
         τ -> plot_at_t(τ)[1],
         τ -> plot_at_t(τ)[2],
@@ -263,7 +274,8 @@ function plot_2d_projection(solution, gk; agent_colors = nothing, add_legend = f
     ylabel!("Y")
 
     for obs in GK.get_obstacles(gk.problem)
-        plot!(PlotCircle(obs), label = false, color = :black, linewidth = 2)
+        repr = get_2d_repr(obs)
+        plot!(repr, label = false, color = :black, linewidth = 2)
     end
 
     n_agents = length(gk.problem.offset)

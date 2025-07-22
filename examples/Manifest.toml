@@ -794,7 +794,7 @@ uuid = "6ebb71f1-8434-552f-b6b1-dc18babcca63"
 version = "4.18.6+0"
 
 [[deps.GatekeeperFormationFlight]]
-deps = ["DiffEqCallbacks", "Dubins", "Dubins3D", "LinearAlgebra", "Logging", "OrdinaryDiffEq", "ProgressMeter", "RecipesBase", "StaticArrays", "TerminalLoggers"]
+deps = ["DiffEqCallbacks", "Dubins", "Dubins3D", "LinearAlgebra", "Logging", "OrdinaryDiffEq", "Plots", "ProgressMeter", "RecipesBase", "StaticArrays", "TerminalLoggers"]
 path = ".."
 uuid = "c276d96c-8ff3-430d-986d-db5867057ed6"
 version = "1.0.0-DEV"

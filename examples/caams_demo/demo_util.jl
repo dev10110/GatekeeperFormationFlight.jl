@@ -118,7 +118,7 @@ function solve_leader_path!(env::SimEnvironment)::Bool
     ]
 
     success, waypoints =
-        ExampleUtils3D.solve_3d_rrt(x0, xg, rrt_problem; rrt_iterations = 1200)
+        ExampleUtils3D.solve_3d_rrt(x0, xg, rrt_problem; rrt_iterations = 1000)
 
     if !success
         return false
