@@ -342,7 +342,7 @@ function plot_min_interagent_distance(solution, gk)
 
     plot!(
         solution.t,
-        [gk.problem.agent_radius * 2 for i = 1:length(solution.t)],
+        [gk.problem.agent_radius for i = 1:length(solution.t)],
         label = "Collision Threshold",
         linestyle = :dash,
         color = :red,
@@ -520,8 +520,43 @@ function calculate_statistics(solution_vector, gk_vector)
     return true, mean(agent_errors)
 end
 
-function animate_interagent(solution, gk)
 
+function animate_interagent_2d(solution, gk)
+
+    modified_range = range(solution.t[1], solution.t[end], length = 100)
+
+    anim = @animate for (idx, t) in enumerate(modified_range)
+        println("Animation Time: $t")
+
+        state_matrix = solution(t)
+
+        p = plot()
+        xlims!(p, -3, 3)
+        ylims!(p, -3, 3)
+
+        # Plot agent positions
+        plot!(state_matrix[:, 1], state_matrix[:, 2], seriestype = :scatter)
+
+        δ = gk.problem.agent_radius
+
+        # Plot a circle of radius r around each agent
+        r = gk.problem.agent_radius
+        θ = range(0, 2π, length = 100)
+        for agent in eachrow(state_matrix)
+            x = agent[1]
+            y = agent[2]
+            circle_x = x .+ δ .* cos.(θ)
+            circle_y = y .+ δ .* sin.(θ)
+            plot!(circle_x, circle_y, color = :gray, alpha = 0.5, label = false)
+        end
+
+        for obs in GK.get_obstacles(gk.problem)
+            repr = get_2d_repr(obs)
+            plot!(repr, label = false)
+        end
+    end
+
+    return anim
 end
 
 end # module ExampleUtils3D

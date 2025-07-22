@@ -28,6 +28,8 @@ end
 
 @kwdef struct SimScenario
     name::String = "default_scenario"
+    reconstruction_time::Float64 = 30.0
+    reconstruction_step_size::Float64 = 0.005
     start_pose::SVector{5,Float64} = SVector(0.0, 0.0, 0.0, 0.0, 0.0)
     goal_pose::SVector{5,Float64} = SVector(0.0, 0.0, 0.0, 0.0, 0.0)
     domain_min::SVector{3,Float64} = SVector(-1.0, -1.0, 0.0)

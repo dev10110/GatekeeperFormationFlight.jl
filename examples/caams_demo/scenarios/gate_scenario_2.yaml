@@ -46,7 +46,7 @@ obstacles:
   - position:
       - 0.0
       - 0.0
-      - 0.5
+      - 0.35
     type: "FPVGate"
 agent_settings:
   turn_radius: 0.5
