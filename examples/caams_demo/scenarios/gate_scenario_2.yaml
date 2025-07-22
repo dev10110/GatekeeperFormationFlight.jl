@@ -49,7 +49,7 @@ obstacles:
       - 0.35
     type: "FPVGate"
 agent_settings:
-  turn_radius: 0.5
+  turn_radius: 0.75
   pitch_limits:
     - -0.7853981633974483
     - 0.7853981633974483
@@ -58,7 +58,7 @@ agent_settings:
   x_padding: 0.1
   agent_radius: 0.20
 gatekeeper_coefficients:
-  reconnection_step_size: 0.125
+  reconnection_step_size: 0.05
   max_Ts_horizon: 10.0
   integration_step_size: 0.01
   collision_check_step_size: 0.05
