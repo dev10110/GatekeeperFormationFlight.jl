@@ -7,14 +7,14 @@ agents:
       - 0.0
     id: 1
   - offset:
-      - -0.4
+      - -0.6
       - -0.4
       - 0.0
       - 0.0
       - 0.0
     id: 2
   - offset:
-      - -0.4
+      - -0.6
       - 0.4
       - 0.0
       - 0.0
@@ -23,7 +23,7 @@ agents:
 scenario:
   start_pose:
     - -2.4
-    - 0.0
+    - 0.6
     - 0.5
     - 1.570795 # pi / 2
     - 0.0
@@ -54,7 +54,7 @@ obstacles:
       - 0.95
     type: "FPVGate"
 agent_settings:
-  turn_radius: 0.5
+  turn_radius: 0.25
   pitch_limits:
     - -0.7853981633974483
     - 0.7853981633974483
