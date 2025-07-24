@@ -159,6 +159,7 @@ function sample_domain(P::Dubins3DRRTProblem)::SVector{5,Float64}
             new_z = rand((gate.pos[3]-0.125):0.01:(gate.pos[3]+0.125))
 
             yaw = clamp(return_vector[4], -π / 8, π / 8) + 0.001 * return_vector[4]# clamp to be mostly straight
+            # yaw = clamp(return_vector[4], -7π / 8, 7π / 8) + 0.001 * return_vector[4]# clamp to be mostly straight
             return SVector{5,Float64}(
                 return_vector[1],
                 new_y,
