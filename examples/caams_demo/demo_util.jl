@@ -212,8 +212,12 @@ function fit_polynomials(
         agent_data = filter(row -> row.agent_id == agent, eachrow(data))
         t_scaled = [row.time * trajectory_time for row in agent_data]
 
-        for i = 1:(chunk_size-5):length(agent_data)
-            idx_end = min(i + chunk_size - 1 + 5, length(agent_data))
+        # for i = 1:(chunk_size-5):length(agent_data)
+        #     idx_end = min(i + chunk_size - 1 + 5, length(agent_data))
+        #     t_chunk = t_scaled[i:idx_end]
+        #     t_chunk = t_chunk .- t_chunk[1]  # Normalize to start at 0
+        for i = 1:chunk_size:length(agent_data)
+            idx_end = min(i + chunk_size, length(agent_data))
             t_chunk = t_scaled[i:idx_end]
             t_chunk = t_chunk .- t_chunk[1]  # Normalize to start at 0
 
@@ -225,7 +229,7 @@ function fit_polynomials(
             px = fit(t_chunk, x, poly_degree)
             py = fit(t_chunk, y, poly_degree)
             pz = fit(t_chunk, z, poly_degree)
-            pyaw = fit(t_chunk, yaw, poly_degree)
+            pyaw = fit(t_chunk, yaw * 0, poly_degree)
 
             # println("Px: $px, Py: $py, Pz: $pz, Pyaw: $pyaw")
 
