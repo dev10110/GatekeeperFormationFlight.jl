@@ -200,7 +200,7 @@ end
 
 function fit_polynomials(
     data::DataFrame;
-    chunk_size::Int = 40,
+    chunk_size::Int = 80,
     poly_degree::Int = 7,
     trajectory_time::Float64 = 30.0,
 )
