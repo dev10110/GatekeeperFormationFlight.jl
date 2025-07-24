@@ -23,7 +23,7 @@ agents:
 scenario:
   start_pose:
     - -2.4
-    - -1.2
+    - -0.6
     - 0.5
     - 1.570795 # pi / 2
     - 0.0
