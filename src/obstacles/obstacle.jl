@@ -194,17 +194,18 @@ function collision_distance(
     pos = s.pos_at_t(t)
     n = length(pos)
 
-    Q = @SMatrix Float64[
-        1.0 0.0 0.0
-        0.0 1.0 0.0
-        0.0 0.0 1/√3.0
-    ]
+    # Q = @SMatrix Float64[
+    #     1.0 0.0 0.0
+    #     0.0 1.0 0.0
+    #     0.0 0.0 0.0
+    # ]
 
     # Avoid allocation: use view if slicing is needed
     # x_n = (length(x) == n) ? x : @view x[1:n]
     # diff = pos .- x_n
-    diff = pos - x[SOneTo(n)]
-    return norm(Q * diff) - s.radius
+    diff = pos[SOneTo(2)] - x[SOneTo(2)]
+    return norm(diff) - s.radius
+    # return norm(Q * diff) - s.radius
 
     # return norm(pos .- x_n) - s.radius
 end

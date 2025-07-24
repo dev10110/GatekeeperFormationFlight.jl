@@ -48,9 +48,10 @@ exclusion zone for the agent--the minimum distance between two agents along a du
 to avoid collision.
 """
 function exclusion_zone(turning_radius::Float64, agent_radius::Float64)::Float64
+    return agent_radius #+ 0.01
     # TODO NEED TO VERIFY TS
     # return 2 * turning_radius * asin(agent_radius / turning_radius)
-    return agent_radius
+    # return agent_radius
     # return max(2 * turning_radius * asin(agent_radius / turning_radius), agent_radius)
     # return 2 * turning_radius * asin(agent_radius / turning_radius)
     # return 0.15 # TODO THIS IS WRONG RN
