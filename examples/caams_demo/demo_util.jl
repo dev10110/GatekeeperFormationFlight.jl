@@ -201,7 +201,7 @@ end
 function fit_polynomials(
     data::DataFrame;
     chunk_size::Int = 80,
-    poly_degree::Int = 7,
+    poly_degree::Int = 3,
     trajectory_time::Float64 = 30.0,
 )
     agents = unique(data.agent_id)
@@ -232,22 +232,22 @@ function fit_polynomials(
             names = [:agent_id, :duration]
             values = [agent, t_chunk[end]]
 
-            for ind = 0:poly_degree
+            for ind = 0:7
                 coeff = ind <= degree(px) ? coeffs(px)[ind+1] : 0.0
                 push!(names, Symbol("x^$ind"))
                 push!(values, coeff)
             end
-            for ind = 0:poly_degree
+            for ind = 0:7
                 coeff = ind <= degree(py) ? coeffs(py)[ind+1] : 0.0
                 push!(names, Symbol("y^$ind"))
                 push!(values, coeff)
             end
-            for ind = 0:poly_degree
+            for ind = 0:7
                 coeff = ind <= degree(pz) ? coeffs(pz)[ind+1] : 0.0
                 push!(names, Symbol("z^$ind"))
                 push!(values, coeff)
             end
-            for ind = 0:poly_degree
+            for ind = 0:7
                 coeff = ind <= degree(pyaw) ? coeffs(pyaw)[ind+1] : 0.0
                 push!(names, Symbol("yaw^$ind"))
                 push!(values, coeff)

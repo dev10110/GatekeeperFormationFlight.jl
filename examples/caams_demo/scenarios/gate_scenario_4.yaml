@@ -61,8 +61,8 @@ agent_settings:
   v_min: 0.7
   v_max: 1.0
   x_padding: 0.0
-  y_padding: 0.2
-  agent_radius: 0.2
+  y_padding: 0.3
+  agent_radius: 0.20
 gatekeeper_coefficients:
   reconnection_step_size: 0.05
   max_Ts_horizon: 10.0
