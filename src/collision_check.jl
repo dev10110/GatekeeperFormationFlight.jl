@@ -274,6 +274,7 @@ function Obstacles.is_colliding(
     )
 end
 
+
 """
     is_colliding(obs::VO, path::DubinsPath, tol = 1e-5)
 

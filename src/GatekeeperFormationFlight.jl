@@ -15,6 +15,9 @@ export GKDubinsWezes2D, GKDubinsObs3D, GKDubinsObs3DInterAgent
 export Robot3, Sphere, Cylinder, PlotCircle, GroundedHalfDome, TimeVaryingSphere
 export Dubins3DRRTProblem
 
+# DEMO OBSTALCES
+export FPVGate, get_2d_repr
+
 export wez_coordinates
 export is_colliding, collision_distance, minimum_distance
 # export plot_scenario!, plot_scenario
@@ -30,6 +33,7 @@ using .RobotTypes
 
 include("obstacles/Obstacles.jl")
 using .Obstacles
+
 
 
 include("utils.jl")

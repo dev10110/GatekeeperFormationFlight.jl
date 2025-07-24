@@ -431,7 +431,43 @@ function construct_candidate_nominal_trajectory(
 end
 
 """
-    construct_candidate_backup_trajectory(gk::GatekeeperInstance{GP<:GatekeeperProblem}, state::ST)
+takes the start time of the vector of paths, and a time until which to check for collisions w.r.t. static obstacles
+
+start time is absolute, as is end time. 
+"""
+function is_colliding_duration(
+    obs::VO,
+    path::VM,
+    start_time::F,
+    end_time::F,
+    sampling_density::F = 0.25,
+    collision_tol::F = 1e-5,
+) where {F<:Real,O<:AbstractObstacle,VO<:AbstractVector{O},VM<:AbstractVector}
+    # Check if any of the paths are colliding with the obstacles in the vector
+
+    # path is a vector of dubins maneuvers
+    cumulative_times = [0.0; cumsum(p.length for p in path[1:end-1])]
+    cumulative_times .+= start_time
+
+    end_path_idx = findlast(t -> t < end_time, cumulative_times)
+
+    if isnothing(end_path_idx)
+        end_path_idx = length(path)
+    end
+
+    return any(
+        Obstacles.is_colliding(obs, p, p_off, sampling_density, 1e-5) for
+        (p, p_off) in zip(path[1:end_path_idx], cumulative_times[1:end_path_idx])
+    )
+end
+
+"""
+    construct_candidate_backup_trajectory(
+    gk::GatekeeperInstance{GP},
+    state::ST,
+    time::F = 0.0,
+    mas_check_until_time::Union{F,Nothing} = nothing, # If not nothing, then check until this time
+)::Union{Any,Nothing} where {ST,GP<:GatekeeperProblem,F<:Real}
 
 From some initial state, attempts to construct the best backup trajectory
 """
@@ -439,7 +475,8 @@ function construct_candidate_backup_trajectory(
     gk::GatekeeperInstance{GP},
     state::ST,
     time::F = 0.0,
-)::Union{Any,Nothing} where {ST,GP<:GatekeeperProblem,F}
+    mas_check_until_time::Union{F,Nothing} = nothing, # If not nothing, then check until this time
+)::Union{Any,Nothing} where {ST,GP<:GatekeeperProblem,F<:Real}
 
     # Get the set of reconnection sites
     reconnection_sites =
@@ -469,7 +506,32 @@ function construct_candidate_backup_trajectory(
 
             full_path = vcat(connection_path, remaining_nominal)
 
-            return full_path
+            reconnection_time = time + connection_path.length
+
+            # If not MAS or the reconnection time is after the check time (i.e. has alr done the check)
+            # then return
+            if mas_check_until_time === nothing || reconnection_time >= mas_check_until_time
+                return full_path
+            end
+
+            # return full_path
+
+            # println(
+            #     "Reconnection Time: $(reconnection_time), MAS Check Until Time: $(mas_check_until_time)",
+            # )
+
+            # In the MAS case, need to verify the safety of the remaining nominal until
+            # all other agents have returned to the leader trajectory
+            if !is_colliding_duration(
+                get_obstacles(gk.problem),
+                remaining_nominal,
+                reconnection_time,
+                mas_check_until_time,
+                gk.coefficients.collision_check_step_size, # path sampling frequency
+                gk.coefficients.collision_check_step_size * 2.0, # collision tolerance
+            )
+                return full_path
+            end
         end
     end
 

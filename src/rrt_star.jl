@@ -48,7 +48,9 @@ function rrt_star(problem, nodes, max_iters; do_rewire = true)
     # x -> actual state
     # n -> full node
 
-    for iter = 1:max_iters
+    # for iter = 1:max_iters
+    total_iters = 0
+    while length(nodes) < max_iters && total_iters < 2 * max_iters
         # grab a random state
         x_rand = sample_free(problem)
 
@@ -102,6 +104,8 @@ function rrt_star(problem, nodes, max_iters; do_rewire = true)
                     end
                 end
             end
+
+            total_iters += 1
         end
 
     end

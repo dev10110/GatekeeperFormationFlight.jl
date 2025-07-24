@@ -51,9 +51,10 @@ function make_reference_trajectory(
     x0,
     xg;
     X_PADDING = 10.0,
+    Y_PADDING = 0.0,
 )::Vector{DubinsManeuver3D}
-    padded_start = [@SVector [x0[1] - X_PADDING, x0[2], x0[3], 0.0, 0.0]]
-    padded_goal = [@SVector [xg[1] + X_PADDING, xg[2], xg[3], 0.0, 0.0]]
+    padded_start = [@SVector [x0[1] - X_PADDING, x0[2] - Y_PADDING, x0[3], x0[4], 0.0]]
+    padded_goal = [@SVector [xg[1] + X_PADDING, xg[2] + Y_PADDING, xg[3], xg[4], 0.0]]
 
     # padded_waypoints = hcat(padded_start, waypoints, padded_goal)
     padded_waypoints = [padded_start; waypoints; padded_goal]

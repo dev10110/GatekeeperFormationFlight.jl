@@ -9,44 +9,9 @@ using Polynomials
 
 using ..FileUtil
 using ..ExampleUtils3D
+using ..DemoUtilTypes
 
 ASO = GatekeeperFormationFlight.Obstacles.AbstractStaticObstacle
-
-@kwdef struct AgentSettings
-    v_min::Float64 = 0.8
-    v_max::Float64 = 1.0
-    x_padding::Float64 = 0.1
-    agent_radius::Float64 = 0.125
-    turn_radius::Float64 = 0.5
-    pitch_limits::SVector{2,Float64} = SVector(-pi / 4, pi / 4)
-end
-
-@kwdef struct SimAgent
-    id::Int64 = 1
-    offset::SVector{5,Float64} = SVector(0.0, 0.0, 0.0, 0.0, 0.0)
-end
-
-@kwdef struct SimScenario
-    name::String = "default_scenario"
-    reconstruction_time::Float64 = 30.0
-    reconstruction_step_size::Float64 = 0.005
-    start_pose::SVector{5,Float64} = SVector(0.0, 0.0, 0.0, 0.0, 0.0)
-    goal_pose::SVector{5,Float64} = SVector(0.0, 0.0, 0.0, 0.0, 0.0)
-    domain_min::SVector{3,Float64} = SVector(-1.0, -1.0, 0.0)
-    domain_max::SVector{3,Float64} = SVector(1.0, 1.0, 2.0)
-end
-@kwdef mutable struct SimEnvironment
-    scenario::SimScenario = SimScenario()
-    agent_settings::AgentSettings = AgentSettings()
-    agents::Vector{SimAgent} = Vector{SimAgent}()
-    obstacles::Vector{ASO} = Vector{ASO}()
-    gatekeeper_coefficients::GatekeeperCoefficients = GatekeeperCoefficients()
-    leader_path = nothing
-    solution = nothing
-    composites = nothing
-    gk = nothing # Gatekeeper instance
-    data = nothing
-end
 
 function load_env(env_file)::SimEnvironment
     """
@@ -105,7 +70,7 @@ function solve_leader_path!(env::SimEnvironment)::Bool
     # Padding on the start and end states -- pre-apply the x-padding
     x0 = @SVector [
         env.scenario.start_pose[1] + env.agent_settings.x_padding,
-        env.scenario.start_pose[2],
+        env.scenario.start_pose[2] + env.agent_settings.y_padding,
         env.scenario.start_pose[3],
         env.scenario.start_pose[4],
         env.scenario.start_pose[5],
@@ -113,14 +78,14 @@ function solve_leader_path!(env::SimEnvironment)::Bool
 
     xg = @SVector [
         env.scenario.goal_pose[1] - env.agent_settings.x_padding,
-        env.scenario.goal_pose[2],
+        env.scenario.goal_pose[2] - env.agent_settings.y_padding,
         env.scenario.goal_pose[3],
         env.scenario.goal_pose[4],
         env.scenario.goal_pose[5],
     ]
 
     success, waypoints =
-        ExampleUtils3D.solve_3d_rrt(x0, xg, rrt_problem; rrt_iterations = 1000)
+        ExampleUtils3D.solve_3d_rrt(x0, xg, rrt_problem; rrt_iterations = 500)
 
     if !success
         return false
@@ -130,9 +95,12 @@ function solve_leader_path!(env::SimEnvironment)::Bool
         waypoints,
         env.agent_settings.turn_radius,
         env.agent_settings.pitch_limits,
-        env.scenario.start_pose,
-        env.scenario.goal_pose;
+        x0,
+        xg;
+        # env.scenario.start_pose,
+        # env.scenario.goal_pose;
         X_PADDING = env.agent_settings.x_padding,
+        Y_PADDING = env.agent_settings.y_padding,
     )
 
     # Set the leader path in the environment object
@@ -160,10 +128,19 @@ function solve_gk_problem!(env::SimEnvironment)::Bool
 
     multi_gk_instance = GatekeeperInstance(multi_gk_problem, env.gatekeeper_coefficients)
 
+    # initial positions need to use rotated offsets 
+    rotation_matrix = @SMatrix [
+        [cos(env.scenario.start_pose[4]) -sin(env.scenario.start_pose[4]) 0.0]
+        [sin(env.scenario.start_pose[4]) cos(env.scenario.start_pose[4]) 0.0]
+        [0.0 0.0 1.0]
+    ]
+
     initial_positions = [
-        env.scenario.start_pose + SVector{5,Float64}(offset..., 0.0, 0.0) for
+        env.scenario.start_pose +
+        SVector{5,Float64}((rotation_matrix * offset)..., 0.0, 0.0) for
         offset in offsets
     ]
+
     initial_positions = reduce(hcat, initial_positions)'
     tspan = [0.0, sum(x -> x.length, env.leader_path)]
 

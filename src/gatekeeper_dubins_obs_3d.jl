@@ -300,9 +300,6 @@ function compute_nominal_trajectory(reference_path, offset::SVector{3,Float64})
         transformation_matrix = get_transformation_matrix(p[4], p[5], 0.0)
         projected_offset = transformation_matrix * offset
 
-        @show p[4], p[5]
-        @show projected_offset
-
         # compute the new point on the nominal trajectory
         new_point = SVector{5,Float64}(
             p[1] + projected_offset[1],

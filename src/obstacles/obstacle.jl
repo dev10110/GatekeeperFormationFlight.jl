@@ -5,7 +5,7 @@ This file defines the types and functions for obstacles
 """
 
 using StaticArrays, LinearAlgebra
-using RecipesBase
+using RecipesBase, Plots
 
 using ..RobotTypes
 
@@ -199,6 +199,39 @@ function collision_distance(
     return norm(pos .- x_n) - s.radius
 end
 
+###############################################################
+### FPV Gate ########################################
+###############################################################
+"""
+FPV Gate
+----
+Always aligned on the x-axis. Blocks entire y and z axis other than cylinder
+through.
+"""
+struct FPVGate{F} <: AbstractStaticObstacle where {F<:Real}
+    pos::SVector{3,F}
+end
+
+function FPVGate(x::F, y::F, z::F) where {F<:Real}
+    return FPVGate(SVector{3,F}([x, y, z]))
+end
+
+const FPVGateWidth::Float64 = 0.9  # Actually 0.7, padded for safety
+const FPVGateAllowedRadius::Float64 = 0.125  # Radius of the cylinder through the gate
+
+function collision_distance(g::FPVGate, x::AbstractVector{F}, time::F) where {F<:Real}
+    # first check distance to be in the plane defined by the gate
+    plane_dist = abs(x[1] - g.pos[1]) - (FPVGateWidth / 2.0)
+
+    if plane_dist > FPVGateAllowedRadius
+        return plane_dist
+    end
+
+    # Create cylinder of free space through the gate
+    axis_dist = FPVGateAllowedRadius - norm(@SVector [x[2] - g.pos[2], x[3] - g.pos[3]])
+    return max(plane_dist, axis_dist)
+end
+
 
 ###############################################################
 ### Plotting ##################################################
@@ -265,6 +298,74 @@ end
     return x, y, z
 end
 
+@recipe function plot_gate(g::FPVGate, height = FPVGateWidth)
+    # Plot a horizontal cylinder (aligned with x-axis) representing the gate passthrough
+    seriestype := :surface
+    colorbar --> false
+    label --> false
+    alpha := 0.3
+
+    n_points = 60
+    # Cylinder parameters
+    x = range(g.pos[1] - height / 2, g.pos[1] + height / 2, length = n_points)
+    theta = range(0, 2π, length = n_points)
+
+    # Meshgrid for cylinder
+    X = repeat(x', n_points, 1)
+    Y = g.pos[2] .+ FPVGateAllowedRadius * cos.(theta) * ones(length(x))'
+    Z = g.pos[3] .+ FPVGateAllowedRadius * sin.(theta) * ones(length(x))'
+
+    return X, Y, Z
+end
+
+struct FPVGate2D{F<:Real}
+    pos::SVector{3,F}
+    color::Any
+end
+
+@recipe function plot_fpvgate2d(g::FPVGate2D)
+    # seriestype := :shape
+    # alpha --> 0.3
+    # color --> g.color
+    # label --> false
+
+    # Gate parameters
+    x0 = g.pos[1]
+    y0 = g.pos[2]
+    width = FPVGateWidth
+    radius = FPVGateAllowedRadius
+
+    # Rectangle bounds (left and right of the passthrough hole)
+    x_min = x0 - width / 2.0
+    x_max = x0 + width / 2.0
+    y_min = y0 - radius
+    y_max = y0 + radius
+
+    # Left rectangle (from x_min to left edge of hole)
+    left_x = [x_min, x_min, x_max, x_max, x_max]
+    left_y = [y_min, y_min - 50.0, y_min - 50.0, y_min, y_min]
+
+    # Right rectangle (from right edge of hole to x_max)
+    right_x = [x_min, x_min, x_max, x_max, x_max]
+    right_y = [y_max, y_max + 50.0, y_max + 50.0, y_max, y_max]
+
+    @series begin
+        seriestype := :shape
+        alpha --> 0.5
+        color --> g.color
+
+        return left_x, left_y
+    end
+
+    @series begin
+        seriestype := :shape
+        alpha --> 0.5
+        color --> g.color
+
+        return right_x, right_y
+    end
+end
+
 struct PlotCircle{F}
     center::SVector{2,F}
     radius::F
@@ -293,4 +394,18 @@ PlotCircle(s::Sphere) = PlotCircle(SVector{2,Float64}([s.pos[1], s.pos[2]]), s.R
     y = c.center[2] .+ c.radius * sin.(u)
 
     return x, y
+end
+
+function get_2d_repr(obs::AbstractStaticObstacle)
+    if obs isa Sphere
+        return PlotCircle(obs)
+    elseif obs isa GroundedHalfDome
+        return PlotCircle(obs)
+    elseif obs isa Cylinder
+        return PlotCircle(obs)
+    elseif obs isa FPVGate
+        return FPVGate2D(obs.pos, :black)
+    else
+        error("Unsupported obstacle type for 2D representation: $(typeof(obs))")
+    end
 end

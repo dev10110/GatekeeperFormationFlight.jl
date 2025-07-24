@@ -140,7 +140,36 @@ function sample_domain(P::Dubins3DRRTProblem)::SVector{5,Float64}
     @debug "Sample Domain"
 
     v = @SVector rand(5)
-    return SVector{5,Float64}(P.domain[1] + (P.domain[2] - P.domain[1]) .* v)
+    return_vector = SVector{5,Float64}(P.domain[1] + (P.domain[2] - P.domain[1]) .* v)
+
+    if !any(o -> o isa FPVGate, P.obstacles)
+        return return_vector
+    end
+
+    # If the problem contains a "gate" obstacle, we sample points in the gate occasionally
+    gate_obstacles = filter(o -> o isa FPVGate, P.obstacles)
+
+    # TODO Fix this to be parameterizeable
+    for gate in gate_obstacles
+        # if the point is within the gate's rectangle bounds, then sample a point with the same x, yaw, pitch
+        # but a random y and z within the gate's bounds
+        if return_vector[1] >= gate.pos[1] - 0.45 && return_vector[1] <= gate.pos[1] + 0.45
+            # Sample a random y and z within the gate's bounds
+            new_y = rand((gate.pos[2]-0.125):0.01:(gate.pos[2]+0.125))
+            new_z = rand((gate.pos[3]-0.125):0.01:(gate.pos[3]+0.125))
+
+            yaw = clamp(return_vector[4], -π / 8, π / 8) + 0.001 * return_vector[4]# clamp to be mostly straight
+            return SVector{5,Float64}(
+                return_vector[1],
+                new_y,
+                new_z,
+                yaw,
+                return_vector[5], # pitch
+            )
+        end
+    end
+
+    return return_vector
 end
 
 """

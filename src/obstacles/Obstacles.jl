@@ -15,6 +15,11 @@ export PlotCircle, Sphere, Cylinder, GroundedHalfDome, TimeVaryingSphere
 # Wezes
 export Cardioid, CircularWez, Cbez
 
+# Demo Obstacles
+export FPVGate
+
+export get_2d_repr
+
 include("obstacle.jl")
 include("wez.jl")
 

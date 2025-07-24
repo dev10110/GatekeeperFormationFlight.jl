@@ -61,6 +61,8 @@ function Gatekeeper.simulate_closed_loop_gatekeeper(
         Vector{Float64}(),
     )
 
+    valid_agents = 0
+
     for agent_idx = 1:n_agents
         @info "Constructing candidate trajectory for agent $(agent_idx) at x0 = $(initial_state[agent_idx, :])"
 
@@ -78,13 +80,27 @@ function Gatekeeper.simulate_closed_loop_gatekeeper(
         )
         if !success
             @error "No candidate trajectory found for agent $(agent_idx). Cannot proceed with simulation."
-            return nothing, nothing
+            pop!(candidate_trajectory.nominal)
+            pop!(candidate_trajectory.backup)
+            pop!(candidate_trajectory.switch_time)
+            break
+            # return nothing, nothing
         end
+        valid_agents += 1
     end
 
-    @info "Candidate trajectory found for all agents"
+    if valid_agents == 0
+        @error "No valid agents found. Cannot proceed with simulation."
+        return nothing, nothing
+    end
+
+    @info "Candidate trajectory found for $(valid_agents) agents"
 
     params = (gk, candidate_trajectory)
+
+    @show initial_state
+    initial_state = initial_state[1:valid_agents, :]
+    @show initial_state
 
     odeproblem =
         ODEProblem(multi_closed_loop_tracking_composite!, initial_state, timespan, params)
@@ -203,6 +219,8 @@ end
 # More fine grained implementation details
 ####################################
 
+
+
 """
     try_update_agent_committed!(committed_traj, gk, state, agent_idx, time)
 
@@ -235,6 +253,11 @@ function try_update_agent_committed!(
         time,
     )
 
+    mas_check_until_time = max([st for st in committed_traj.switch_time]..., 0.0)
+
+    # @show mas_check_until_time =
+    #     # max([x.switch_time for x in committed_traj if x !== nothing])
+
     if isnothing(nominal_solution)
         @warn "No nominal solution found for agent $(agent_idx) at time $(time). Cannot update committed trajectory."
         return false
@@ -250,10 +273,14 @@ function try_update_agent_committed!(
         nominal_end_state = nominal_solution(switch_time)
 
         # TODO this might need to change
+        # Construct the backup trajectory for the agent
+        # Need to check that the backup doesn't collide with any other agents
+        # Up to the time that all agents have returned to the leader trajectory
         backup_path = Gatekeeper.construct_candidate_backup_trajectory(
             agent_gk,
             nominal_end_state,
             switch_time,
+            mas_check_until_time,
         )
 
         if !isnothing(backup_path)
