@@ -52,7 +52,7 @@ wezes = create_scenario()
 
 
 
-leader_robot = Robot(-0.1, 0.0, 0.0)
+leader_robot = Robot(-0.1, 0.07, 0.0)
 L = 2 * true_interagent_distance / scale_factor # distance between the leader and the followers
 half_angle = π / 6 # angle between the leader and the followers # 30 degrees
 follower_robots = [
@@ -80,7 +80,7 @@ turning_radius = 0.1
 rrt_problem = DubinsRRTProblem(domain, turning_radius, wezes)
 
 # start the tree with the root node
-nodes = [Node(SVector(0, 0, 0.0))]
+nodes = [Node(SVector(0, 0.07, 0.0))]
 
 # add 1000 nodes to the tree
 nodes = rrt_star(rrt_problem, nodes, 1000)
