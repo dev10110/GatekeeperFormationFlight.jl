@@ -82,7 +82,7 @@ nodes = [Node(SVector(0, 0, 0.0))]
 nodes = rrt_star(rrt_problem, nodes, 1000)
 
 # see if there is a path 
-success_code, waypoints = get_best_path(rrt_problem, nodes, @SVector [1.0, 1.0, 0])
+success_code, waypoints = get_best_path(rrt_problem, nodes, @SVector [1.0, 0.0, 0]) # new go
 
 # uncomment the following code if you want to add more nodes to the RRT* problem:
 ## while we havent found a path, add some nodes and check if we have a feasible path
@@ -96,7 +96,7 @@ success_code, waypoints = get_best_path(rrt_problem, nodes, @SVector [1.0, 1.0, 
 @assert success_code
 
 # prepend and append the start and the goal
-waypoints = [SVector(leader_robot), waypoints..., SVector(1.33, 1.0, 0.0)]
+waypoints = [SVector(leader_robot), waypoints..., SVector(1.33, 0.0, 0.0)]
 
 path = DubinsPath[]
 # add all the waypoints to the path
