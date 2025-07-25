@@ -288,7 +288,7 @@ if true
         yaws = df[df.robot_id .== i, :].yaw
 
         # create the polynomial representation
-        δt = 0.5 # time step for the polynomial representation
+        δt = 1.0 # time step for the polynomial representation
         polys_x = create_polynominal_representation(ts, xs, δt)
         polys_y = create_polynominal_representation(ts, ys, δt)
         polys_z = create_polynominal_representation(ts, zs, δt)

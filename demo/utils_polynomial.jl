@@ -12,7 +12,12 @@ end
 
 function create_polynominal_representation(ts, xs, δt; degree=3, max_degree=7)
     # Fit a bspline of the given degree to the data
-    spline = interpolate(ts, xs, BSplineOrder(degree+1), Natural())
+    spline = interpolate(ts, xs, BSplineOrder(degree+1))
+
+    # approxiamte the spline at the chosen δt
+    subts = range(minimum(ts), maximum(ts), step=δt)
+    B = BSplineBasis(BSplineOrder(degree+1), subts)
+    spline  = approximate(spline, B)
 
     tmin = minimum(ts)
     tmax = maximum(ts)
