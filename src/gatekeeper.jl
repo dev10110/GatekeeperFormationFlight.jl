@@ -17,8 +17,9 @@ construct a `GatekeeperProblem`. The arguments are:
 - collision_check_step_size = 0.01,   # resolution used for checking collision along a path
 - integration_max_step_size = 0.05,   # max integration step size in nominal tracking
 - switch_step_size = 0.05             # resolution used to decrease switch time
+- other_agents = nothing              # other agents in the environment, if any
 """
-@kwdef struct GatekeeperProblem{TW,TR,TO,TF}
+@kwdef struct GatekeeperProblem{TW,TR,TO,TF, TA}
     wezes::TW                            # list of wezes
     reference_path::TR                   # path of the leader
     offset::TO = SVector(0.0, 0.0, 0.0)  # desired offset from the leaders path
@@ -28,6 +29,8 @@ construct a `GatekeeperProblem`. The arguments are:
     collision_check_step_size::TF = 0.01   # resolution used for checking collision along a path
     integration_max_step_size::TF = 0.05   # max integration step size in nominal tracking
     switch_step_size::TF = 0.05            # resolution used to decrease switch time
+    other_agents::TA = []                  # other agents in the environment, if any
+    interagent_collision_distance::Float64 = 0.1 # distance to consider collision with other agents
 end
 
 Base.show(io::IO, prob::GatekeeperProblem) = print(
@@ -139,12 +142,75 @@ function construct_reconnection_paths(reconnection_sites, initial_state, turning
 
 end
 
+function is_colliding_interagent(
+    initial_time,
+    other_agents, # should be a vector of functions from time to the other robot's state
+    full_path::Vector{DubinsPath},
+    collision_check_step_size,
+    interagent_collision_distance,
+)
+
+    if length(other_agents) == 0
+        return false
+    end
+
+    current_time = initial_time
+    for path in full_path
+
+        if is_colliding_interagent(
+                current_time,
+                other_agents,
+                path,
+                collision_check_step_size,
+                interagent_collision_distance,
+            )
+            return true
+        end
+
+        current_time += dubins_path_length(path)
+    end
+    return false
+end
+
+function is_colliding_interagent(
+    initial_time,
+    other_agents, # should be a vector of functions from time to the other robot's state
+    connection_path::DubinsPath,
+    collision_check_step_size,
+    interagent_collision_distance,
+)
+    if length(other_agents) == 0
+        return false
+    end
+    connection_path_length = dubins_path_length(connection_path)
+    for τ in range(0, connection_path_length, step=collision_check_step_size)
+
+        # sample the point on the connection path
+        errcode, pt = dubins_path_sample(connection_path, τ)
+        @assert errcode == EDUBOK
+
+        # get the state of the other agent at this time
+        for other_agent in other_agents           
+            other_agent_state = other_agent(initial_time + τ)
+
+            x_me = pt[SOneTo(2)]
+            x_other = other_agent_state[SOneTo(2)]
+
+            if norm(x_me - x_other) <= interagent_collision_distance
+                return true
+            end
+        end
+    end
+    
+    return false
+end
+
 """
-    construct_candidate_backup_trajectory(initial_state, prob::GatekeeperProblem)
+    construct_candidate_backup_trajectory(initial_time, initial_state, prob::GatekeeperProblem)
 
 from some initial state, this function construsts the best backup trajectory
 """
-function construct_candidate_backup_trajectory(initial_state, prob::GatekeeperProblem)
+function construct_candidate_backup_trajectory(initial_time, initial_state, prob::GatekeeperProblem)
     # returns nothing if it fails to find a path
 
     # the reference path has a set of set of dubins segments
@@ -164,6 +230,7 @@ function construct_candidate_backup_trajectory(initial_state, prob::GatekeeperPr
         # check for safety along the connection
         connection_path = connection_paths[connection_idx]
 
+        # check collision with the wezes
         if !is_colliding(prob.wezes, connection_path, prob.collision_check_step_size)
 
             # construct upto the end of this segment
@@ -180,6 +247,17 @@ function construct_candidate_backup_trajectory(initial_state, prob::GatekeeperPr
 
             # construct the full backup path
             full_path = vcat(connection_path, segment_path, remaining_path)
+
+            # check if the full path is safe wrt to interagent collisions
+            if is_colliding_interagent(
+                    initial_time,
+                    prob.other_agents,
+                    full_path,
+                    prob.collision_check_step_size,
+                    prob.interagent_collision_distance,
+                )
+                continue
+            end
 
             # # check the full backup path (not needed if the reference path is safe)
             # if !path_is_collision_free(full_path, prob.wezes, prob.collision_check_step_size)
@@ -293,8 +371,19 @@ function terminate_condition(state, time, integrator)
     wezes = integrator.p.wezes
 
     # get min distance to a wez
-    return minimum(collision_distance(wez, robot) for wez in wezes)
+    min_wez_dist = minimum(collision_distance(wez, robot) for wez in wezes)
 
+    # get the interagent collision distance
+    r = integrator.p.interagent_collision_distance
+    min_other_agent_dist = Inf
+    for other_agent in integrator.p.other_agents
+        pos_other = other_agent(time)[SOneTo(2)]
+        pos_me = state[SOneTo(2)]
+        d = norm(pos_other - pos_me)
+        min_other_agent_dist = min(min_other_agent_dist, d - r)
+    end
+
+    return min( min_wez_dist, min_other_agent_dist)
 end
 
 """
@@ -316,7 +405,7 @@ function construct_candidate_nominal_trajectory(time, state, prob::GatekeeperPro
 
     odeproblem = ODEProblem(closed_loop_tracking_nominal!, Vector(state), tspan, params)
 
-    # make it stop if it enters the wez
+    # make it stop if it enters the wez or is in collision with another agent
     termination_callback = ContinuousCallback(terminate_condition, terminate!)
 
     # solve the odeproblem
@@ -360,13 +449,15 @@ function construct_candidate_trajectory(time, state, prob::GatekeeperProblem)
 
         # construct a backup from this switch time
         backup_path =
-            construct_candidate_backup_trajectory(SVector{3}(nominal_end_state...), prob)
+            construct_candidate_backup_trajectory(switch_time, SVector{3}(nominal_end_state...), prob)
 
         # if backup was found, return it
         if !isnothing(backup_path)
 
             # construct the composite trajectory
             candidate_traj = CompositeTrajectory(nominal_solution, backup_path, switch_time)
+
+            # return the candidate trajectory
             return candidate_traj
         end
     end
@@ -394,9 +485,7 @@ function update_committed_affect!(integrator)
 
     if !isnothing(candidate_trajectory)
         integrator.p[2] = candidate_trajectory
-        #         println("  -> Successfully created new committed trajectory. Next switch time: $(candidate_trajectory.switch_time)")
     else
-        #         println("  -> no new committed trajectory")
         NaN
     end
     return
@@ -413,8 +502,6 @@ function time_choice_gatekeeper(integrator)
     # grab the reference traj, offsets
     prob = params[1]
     committed_trajectory = params[2]
-
-
 
     return max(time, committed_trajectory.switch_time) + prob.switch_step_size
 end

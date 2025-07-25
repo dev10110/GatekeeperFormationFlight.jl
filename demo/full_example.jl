@@ -5,18 +5,33 @@ using Plots, LinearAlgebra, StaticArrays, Random
 using Dubins
 
 GFF = GatekeeperFormationFlight
+include("utils_plotting.jl")
+
+foam_obs_L = 0.6 # meters on a side
+cf_padding = 0.1 # meters
+circle_obs_radius =  foam_obs_L / sqrt(2) + cf_padding # meters
+true_interagent_distance = 0.2 # meters
+
+scale_factor = 3.0 # scale factor for the real world
+# scale the circle_obs_radius
+obs_r = circle_obs_radius / scale_factor
+println("obs_r: ", obs_r)
 
 function create_scenario()
     # create a set of wezes
     wezes = CircularWez[]
-    for y in -2.0:0.1:3.0
-        if !(0.6 <= y <= 0.8)
-            push!(wezes, CircularWez(0.3, y, 0.1))
-        end
-        if !(0.2 <= y <= 0.4)
-            push!(wezes, CircularWez(0.7, y, 0.1))
-        end
-    end
+    push!(wezes, CircularWez(0.3, 0.4, obs_r)) 
+    push!(wezes, CircularWez(0.7, 0.6, obs_r))
+    push!(wezes, CircularWez(0.5, 0.9, obs_r))
+    # push!(wezes, CircularWez(0.7, 0.6, obs_r)) # right wez
+    # for y in -2.0:obs_r:2.0
+    #     if !(0.6 <= y <= 0.8)
+    #         push!(wezes, CircularWez(0.3, y, obs_r))
+    #     end
+    #     if !(0.2 <= y <= 0.75)
+    #         push!(wezes, CircularWez(0.7, y, obs_r))
+    #     end
+    # end
     return wezes
 end
 
@@ -30,10 +45,15 @@ wezes = create_scenario()
 
 
 # create a set of robots
-leader_robot = Robot(-0.25, 0.0, 0.0)
+
+
+
+leader_robot = Robot(-0.1, 0.0, 0.0)
+L = 2 * true_interagent_distance / scale_factor # distance between the leader and the followers
+half_angle = π / 6 # angle between the leader and the followers # 30 degrees
 follower_robots = [
-                    Robot(-0.3, -0.05, 0.0), 
-                    Robot(-0.3, 0.05, 0.0)
+                    Robot(leader_robot.x - L * cos(half_angle), leader_robot.y - L * sin(half_angle), 0.0), 
+                    Robot(leader_robot.x - L * cos(half_angle), leader_robot.y + L * sin(half_angle), 0.0)
             ]
 robots = vcat(leader_robot, follower_robots...)
 
@@ -76,7 +96,7 @@ success_code, waypoints = get_best_path(rrt_problem, nodes, @SVector [1.0, 1.0, 
 @assert success_code
 
 # prepend and append the start and the goal
-waypoints = [SVector(leader_robot), waypoints..., SVector(1.25, 1.0, 0.0)]
+waypoints = [SVector(leader_robot), waypoints..., SVector(1.33, 1.0, 0.0)]
 
 path = DubinsPath[]
 # add all the waypoints to the path
@@ -88,53 +108,6 @@ end
 
 println("...leader path planned.")
 
-# small function to help plot things
-function plot_scenario!(
-    wezes::VW,
-    robots::VR;
-    draw_bbox = true,
-    title = nothing,
-    kwargs...,
-) where {W<:GFF.AbstractWez,VW<:AbstractVector{W},R<:Robot,VR<:AbstractVector{R}}
-
-    if draw_bbox
-        # plot the bounding box
-        plot!([0, 1, 1, 0, 0], [0, 0, 1, 1, 0], label = false, color = :black)
-        plot!(xlims = (-0.4, 1.4), ylims = (-0.4, 1.4))
-    end
-
-    # plot the wezes
-    for wez in wezes, robot in robots
-        plot!(wez, robot)
-    end
-
-    # plot the robot
-    for robot in robots
-        color = is_colliding(wezes, robot) ? :red : :green
-        plot!(robot; color = color)
-    end
-
-    if isnothing(title)
-        # get the minimum collision distance
-        mind = Inf
-        for r in robots, w in wezes
-            d = collision_distance(w, r)
-            mind = min(mind, d)
-        end
-        plot!(title = "Min Wez Distance: $(round(mind; digits=2))")
-
-        if mind <= 0
-            plot!(titlefont = font(:red))
-        else
-            plot!(titlefont = font(:black))
-        end
-    else
-        plot!(title = title)
-    end
-
-    plot!(aspect_ratio = :equal) 
-
-end
 
 println("Plotting leader path...")
 plot()
@@ -146,34 +119,43 @@ savefig("rrt_best_path.svg")
 println("...leader path plotted.")
 
 ## Now we can construct a `GatekeeperProblem`:
-println("Creating Gatekeeper Problems...")
+println("Starting Gatekeeper Simulations...")
 offsets = [SVector(robot) - SVector(leader_robot) for robot in robots]
 
+
 # For all three robots, we can define the set of problems as 
-gk_problems = [
-    GatekeeperProblem(;
+gk_problems = []
+gk_solutions = []
+
+for i=1:N_robots
+
+    other_agents = []
+    for j=1:(i-1)
+        other_agent_path = gk_solutions[j]
+        push!(other_agents, other_agent_path)
+    end
+
+    prob = GatekeeperProblem(;
         wezes = wezes,
         reference_path = path,
         offset = offsets[i],
-        switch_step_size = 2e-3,
-        reconnection_step_size = 0.01,
+        switch_step_size = 1e-2,
+        reconnection_step_size = 5e-2,
         max_Ts_horizon = 0.5,
         integration_max_step_size = 1e-3,
-        collision_check_step_size = 1e-3,
-    ) for i = 1:N_robots
-]
-println("...gatekeeper problems created.")
+        collision_check_step_size = 5e-3,
+        other_agents = other_agents,
+        interagent_collision_distance=(true_interagent_distance / scale_factor), # will get scaled by a factor when applied to real world!
+    )
 
+    push!(gk_problems, prob)
 
-# We can now `solve` the problems and plot the solutions:
-println("Solving Gatekeeper Problems...")
-tspan = [0.0, total_path_length(path)]
-gk_solutions = [
-    simulate_closed_loop_gatekeeper(SVector(robots[i]), tspan, gk_problems[i]) for
-    i = 1:N_robots
-] 
-println("...gatekeeper problems solved.")
-
+    # solve the problem for this agent
+    tspan = [0.0, total_path_length(path)]
+    gk_sol = simulate_closed_loop_gatekeeper(SVector(robots[i]), tspan, gk_problems[i])
+    push!(gk_solutions, gk_sol)
+    println("...solved Gatekeeper Problem for robot $(i).")
+end
 Tmax = total_path_length(path)
 
 
@@ -211,6 +193,23 @@ savefig("gatekeeper_paths.svg")
 println("...gatekeeper solutions plotted.")
 
 
+# compute inter-agent distance and plot it 
+println("Plotting Inter-agent Distances...")
+plot()
+for i = 1:N_robots
+    for j = (i+1):N_robots
+        sol_a = gk_solutions[i]
+        sol_b = gk_solutions[j]
+
+        plot!(t-> norm(sol_a(t)[SOneTo(2)] - sol_b(t)[SOneTo(2)]), 0, Tmax, label="dist_$(i)_$(j)")
+    end
+end
+xlabel!("Time (TU)")
+ylabel!("Inter-agent distance (LU)")
+hline!([0, true_interagent_distance / scale_factor], linestyle=:dash, color=:red, label="min inter-agent distance")
+title!("Inter-agent distances")
+savefig("inter_agent_distances.svg")
+println("...inter-agent distances plotted.")
 
 # Finally, lets animate the solutions:
 make_animation = true
@@ -247,7 +246,7 @@ end
 
 
 # save the trajectories to a csv file
-if true
+if false
     println("Saving Gatekeeper Trajectories to CSV...")
     using CSV, DataFrames
     df = DataFrame(
@@ -267,9 +266,9 @@ if true
     T = 20.0 # desired t_max
     tmax = maximum(df.time)
     df.time = map(ti -> ti * (T / tmax), df.time)
-    df.x = map(xi -> 4 * xi - 2, df.x) # scale to [-2, 2]
-    df.y = map(yi -> 4 * yi - 2, df.y) # scale to [-2, 2]
-    df.yaw = map(yaw -> 0 * yaw, df.yaw) # force all yaws to 0
+    df.x = map(xi -> scale_factor * (2 * xi - 1), df.x) # scale to [-2, 2]
+    df.y = map(yi -> scale_factor * (2 * yi - 1), df.y) # scale to [-2, 2]
+    # df.yaw = map(yaw -> 0 * yaw, df.yaw) # force all yaws to 0
 
     CSV.write("gatekeeper_trajectories.csv", df)
     println("...saved csv")
@@ -299,6 +298,7 @@ if true
         write_poly_file("robot_$(i)_polynomials.csv", polys_x, polys_y, polys_z, polys_yaw)
     end
 end
+
 
 println("** fin **")
 plot!()
