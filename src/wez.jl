@@ -137,15 +137,13 @@ end
 
 # positive => safe
 function collision_distance(c::CircularWez, r::Robot)
-
-    # get the current distance
-    d = sqrt((r.x - c.x)^2 + (r.y - c.y)^2)
-
-    return d - c.R
+    p = SVector(r.x, r.y)
+    return return minimum_distance(c, p)
 end
 
 function minimum_distance(c::CircularWez, p::SVector{2})
-    return collision_distance(c, r)
+    d = sqrt((p[1] - c.x)^2 + (p[2] - c.y)^2)
+    return d - c.R
 end
 
 
