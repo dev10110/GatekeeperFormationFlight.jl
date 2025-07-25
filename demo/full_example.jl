@@ -285,7 +285,7 @@ if true
         ts = df[df.robot_id .== i, :].time
         xs = df[df.robot_id .== i, :].x
         ys = df[df.robot_id .== i, :].y
-        zs = 1.0 .+ 0 * xs # assume z is constant at 1.0
+        zs = 0.5 .+ 0 * xs # assume z is constant at 1.0
         yaws = df[df.robot_id .== i, :].yaw
 
         # create the polynomial representation
