@@ -10,7 +10,7 @@ include("utils_plotting.jl")
 foam_obs_L = 0.6 # meters on a side
 cf_padding = 0.10 # meters
 circle_obs_radius =  foam_obs_L / sqrt(2) + cf_padding # meters
-true_interagent_distance = 0.20 # meters
+true_interagent_distance = 0.3 # meters
 
 scale_factor = 3.0 # scale factor for the real world
 # scale the circle_obs_radius
