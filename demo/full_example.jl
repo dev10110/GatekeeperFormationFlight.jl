@@ -212,7 +212,7 @@ savefig("inter_agent_distances.svg")
 println("...inter-agent distances plotted.")
 
 # Finally, lets animate the solutions:
-make_animation = true
+make_animation = false
 if make_animation
     println("Creating animation of Gatekeeper Solutions...")
     anim = @animate for t in range(0, Tmax, length=60)
@@ -246,7 +246,7 @@ end
 
 
 # save the trajectories to a csv file
-if false
+if true
     println("Saving Gatekeeper Trajectories to CSV...")
     using CSV, DataFrames
     df = DataFrame(
@@ -288,7 +288,7 @@ if false
         yaws = df[df.robot_id .== i, :].yaw
 
         # create the polynomial representation
-        δt = 1.0 # time step for the polynomial representation
+        δt = 0.5 # time step for the polynomial representation
         polys_x = create_polynominal_representation(ts, xs, δt)
         polys_y = create_polynominal_representation(ts, ys, δt)
         polys_z = create_polynominal_representation(ts, zs, δt)
