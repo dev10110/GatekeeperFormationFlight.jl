@@ -2,7 +2,7 @@
 
 module GatekeeperFormationFlight
 
-export Robot, Cardioid, CircularWez, Cbez
+export Robot, Cardioid, CircularWez, Cbez, PaddedSquareWez
 export wez_coordinates
 export is_colliding, collision_distance, minimum_distance
 export Node, rrt_star, get_best_path

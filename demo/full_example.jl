@@ -19,10 +19,14 @@ println("obs_r: ", obs_r)
 
 function create_scenario()
     # create a set of wezes
-    wezes = CircularWez[]
-    push!(wezes, CircularWez(0.3, 0.4, obs_r)) 
-    push!(wezes, CircularWez(0.75, 0.6, obs_r))
-    push!(wezes, CircularWez(0.5, 0.9, obs_r))
+    wezes = PaddedSquareWez{Float64}[]
+    # push!(wezes, CircularWez(0.3, 0.4, obs_r)) 
+    # push!(wezes, CircularWez(0.75, 0.6, obs_r))
+    # push!(wezes, CircularWez(0.5, 0.9, obs_r))
+    push!(wezes, PaddedSquareWez(0.3, 0.4, foam_obs_L/scale_factor, cf_padding/scale_factor)) 
+    push!(wezes, PaddedSquareWez(0.75, 0.6, foam_obs_L/scale_factor, cf_padding/scale_factor))
+    push!(wezes, PaddedSquareWez(0.5, 0.9, foam_obs_L/scale_factor, cf_padding/scale_factor))
+
     # push!(wezes, CircularWez(0.7, 0.6, obs_r)) # right wez
     # for y in -2.0:obs_r:2.0
     #     if !(0.6 <= y <= 0.8)
@@ -82,7 +86,7 @@ nodes = [Node(SVector(0, 0, 0.0))]
 nodes = rrt_star(rrt_problem, nodes, 1000)
 
 # see if there is a path 
-success_code, waypoints = get_best_path(rrt_problem, nodes, @SVector [1.0, 0.0, 0]) # new go
+success_code, waypoints = get_best_path(rrt_problem, nodes, @SVector [1.0, 1.0, 0]) 
 
 # uncomment the following code if you want to add more nodes to the RRT* problem:
 ## while we havent found a path, add some nodes and check if we have a feasible path
@@ -96,7 +100,7 @@ success_code, waypoints = get_best_path(rrt_problem, nodes, @SVector [1.0, 0.0, 
 @assert success_code
 
 # prepend and append the start and the goal
-waypoints = [SVector(leader_robot), waypoints..., SVector(1.33, 0.0, 0.0)]
+waypoints = [SVector(leader_robot), waypoints..., SVector(1.33, 1.0, 0.0)]
 
 path = DubinsPath[]
 # add all the waypoints to the path

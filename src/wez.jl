@@ -146,6 +146,46 @@ function minimum_distance(c::CircularWez, p::SVector{2})
     return d - c.R
 end
 
+#############################################################
+### Padded Square ###########################################
+#############################################################
+
+"""
+    PaddedSquareWez(x, y, L=0.15, padding=0.05)
+
+Define a Padded Square WEZ at some x, y with side length L and padding.
+"""
+struct PaddedSquareWez{F} <: AbstractWez
+    x::F
+    y::F
+    L::F
+    padding::F
+end
+PaddedSquareWez(x, y, L, padding) = PaddedSquareWez(promote(x, y, L, padding)...)
+PaddedSquareWez(x::F, y::F) where {F} = PaddedSquareWez(x, y, convert(F, 0.15), convert(F, 0.0))
+
+function wez_polar(θ, c::PaddedSquareWez, r::Robot)
+    return c.L / sqrt(2) + c.padding
+end
+
+function wez_coordinates(θ, c::PaddedSquareWez, r::Robot)
+    x = c.x + (c.L / sqrt(2) + c.padding) * cos(θ)
+    y = c.y + (c.L / sqrt(2) + c.padding) * sin(θ)
+
+    return @SVector [x, y]
+end
+
+# positive => safe
+function collision_distance(c::PaddedSquareWez, r::Robot)
+    p = SVector(r.x, r.y)
+    return minimum_distance(c, p)
+end
+
+function minimum_distance(c::PaddedSquareWez, p::SVector{2})
+    d = sqrt((p[1] - c.x)^2 + (p[2] - c.y)^2)
+    return d - (c.L / sqrt(2) + c.padding)
+end
+
 
 #############################################################
 ### CBEZ ####################################################
@@ -331,6 +371,43 @@ end
         x, y
     end
 end
+
+
+@recipe function plot_wez(c::PaddedSquareWez)
+    
+    R = c.L / sqrt(2) + c.padding
+
+    sq_x = [c.x - c.L/2,  c.x + c.L/2, c.x + c.L/2, c.x - c.L/2, c.x - c.L/2]
+    sq_y = [c.y - c.L/2,  c.y - c.L/2, c.y + c.L/2, c.y + c.L/2, c.y - c.L/2]
+
+    # plot the square
+    @series begin
+        seriestype := :path
+        label --> false
+        color --> :blue
+        marker --> false
+        aspect_ratio --> :equal
+        sq_x, sq_y
+    end
+
+    θs = range(0, 2π, length = 100)
+    circ_x = [c.x + R * cos(θ) for θ in θs]
+    circ_y = [c.y + R * sin(θ) for θ in θs]
+    
+
+    # plot the bounding circle
+    @series begin
+        seriestype := :path
+        label --> false
+        color --> :blue
+        aspect_ratio --> :equal
+        linestyle --> :dash
+        circ_x, circ_y
+    end
+
+end
+
+
 
 
 @recipe function plot_wez(c::W, r::Robot) where {W<:AbstractWez}

@@ -151,6 +151,10 @@ function create_collision_region(c::CircularWez)
     return Circle(SVector(c.x, c.y), c.R)
 end
 
+function create_collision_region(c::PaddedSquareWez)
+    return Circle(SVector(c.x, c.y), c.L / sqrt(2) + c.padding)
+end
+
 """
     is_colliding(wez::AbstractWez, path::DubinsPath, tol=1e-5)
 
