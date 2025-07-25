@@ -8,9 +8,9 @@ GFF = GatekeeperFormationFlight
 include("utils_plotting.jl")
 
 foam_obs_L = 0.6 # meters on a side
-cf_padding = 0.1 # meters
+cf_padding = 0.10 # meters
 circle_obs_radius =  foam_obs_L / sqrt(2) + cf_padding # meters
-true_interagent_distance = 0.2 # meters
+true_interagent_distance = 0.20 # meters
 
 scale_factor = 3.0 # scale factor for the real world
 # scale the circle_obs_radius
@@ -21,7 +21,7 @@ function create_scenario()
     # create a set of wezes
     wezes = CircularWez[]
     push!(wezes, CircularWez(0.3, 0.4, obs_r)) 
-    push!(wezes, CircularWez(0.7, 0.6, obs_r))
+    push!(wezes, CircularWez(0.75, 0.6, obs_r))
     push!(wezes, CircularWez(0.5, 0.9, obs_r))
     # push!(wezes, CircularWez(0.7, 0.6, obs_r)) # right wez
     # for y in -2.0:obs_r:2.0
