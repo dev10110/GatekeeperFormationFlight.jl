@@ -265,9 +265,10 @@ if true
     # rescale DataFrame
     T = 20.0 # desired t_max
     tmax = maximum(df.time)
+    # scale everything
     df.time = map(ti -> ti * (T / tmax), df.time)
-    df.x = map(xi -> scale_factor * (2 * xi - 1), df.x) # scale to [-2, 2]
-    df.y = map(yi -> scale_factor * (2 * yi - 1), df.y) # scale to [-2, 2]
+    df.x = map(xi -> scale_factor * (xi - 0.5), df.x)
+    df.y = map(yi -> scale_factor * (yi - 0.5), df.y)
     # df.yaw = map(yaw -> 0 * yaw, df.yaw) # force all yaws to 0
 
     CSV.write("gatekeeper_trajectories.csv", df)
