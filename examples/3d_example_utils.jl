@@ -197,6 +197,77 @@ function plot_interagent_solution(solution, gk; dims_min = nothing, dims_max = n
     return p
 end
 
+function plot_poster_interagent(solution, gk; dims_min = nothing, dims_max = nothing)
+    # Assign a color for each agent
+    n_agents = length(gk.problem.offset)
+
+    pal = palette(:tab10)  # or :Set1, :Dark2, etc.
+    agent_colors = [pal[mod1(i, length(pal))] for i = 1:n_agents]
+
+    # Pass colors to plotting functions
+    p1 = plot_3d_scenario(solution, gk; agent_colors = agent_colors, add_legend = true)
+
+    if dims_min !== nothing && dims_max !== nothing
+        # Set the limits based on the provided dimensions
+        xlims!(p1, dims_min[1], dims_max[1])
+        ylims!(p1, dims_min[2], dims_max[2])
+        zlims!(p1, dims_min[3], dims_max[3])
+    end
+
+    # p2 = plot_2d_projection(solution, gk; agent_colors = agent_colors)
+    p2 = plot_deviation(solution, gk; agent_colors = agent_colors, add_legend = false)
+    p3 = plot_min_interagent_distance(solution, gk)
+    p4 = plot_obstacle_avoidance(solution, gk; agent_colors = agent_colors)
+
+    return p1, p2, p3, p4
+
+    lay = @layout [a [b; c; d]]
+    p = plot(p1, p2, p3, p4, layout = lay, size = (1200, 800))
+    return p
+end
+
+function plot_obstacle_avoidance(solution, gk; agent_colors = nothing, add_legend = false)
+    p = plot(legend = false, size = (600, 300))
+
+    title!("Minimum Distance from Collision with Obstacle")
+
+    for (agent, color) in enumerate(agent_colors)
+        function plot_agent(t)
+            distances = [
+                collision_distance(obs, solution(t)[agent, SOneTo(3)]) for
+                obs in GK.get_obstacles(gk.problem)
+            ]
+            return min(distances...)
+        end
+
+        plot!(
+            τ -> τ,
+            τ -> plot_agent(τ),
+            0.0,
+            solution.t[end],
+            linewidth = 2,
+            color = color,
+        )
+    end
+
+    # Plot a red dashed line at y=0
+    plot!(
+        p,
+        τ -> τ,
+        τ -> 0.0,
+        0.0,
+        solution.t[end],
+        linestyle = :dash,
+        color = :red,
+        label = "Collision Threshold",
+    )
+
+    ylabel!("Collision Distance (m)")
+    xlabel!("Time (s)")
+
+    return p
+end
+
 function plot_3d_scenario(solution, gk; agent_colors = nothing, add_legend = false)
     p1 = plot(
         size = (600, 600),
@@ -333,10 +404,10 @@ function plot_min_interagent_distance(solution, gk)
     p = plot(
         solution.t,
         min_interagent_distance.(solution.t),
-        xlabel = "Time (t)",
-        ylabel = "Distance",
+        xlabel = "Time (s)",
+        ylabel = "Distance (m)",
         title = "Minimum Interagent Distance",
-        label = "Distance",
+        label = "Distance (m)",
         size = (600, 300),
     )
     ylims!(0, Inf)
@@ -355,8 +426,8 @@ end
 function plot_deviation(solution, gk; agent_colors = nothing, add_legend = false)
     p4 = plot(size = (600, 300), legend = add_legend ? :bottomleft : false)
     title!("Deviation from Reference Trajectory")
-    xlabel!("Time (t)")
-    ylabel!("Deviation")
+    xlabel!("Time (s)")
+    ylabel!("Deviation (m)")
     ylims!(0, Inf)
 
     n_agents = length(gk.problem.offset)

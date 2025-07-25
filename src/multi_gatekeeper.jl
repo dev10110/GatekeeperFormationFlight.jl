@@ -46,7 +46,8 @@ end
 function Gatekeeper.simulate_closed_loop_gatekeeper(
     gk::GatekeeperInstance{GP},
     initial_state,
-    timespan,
+    timespan;
+    collect_composites::Bool = false,
 ) where {GP<:MultiGatekeeperProblem}
     n_agents::Int = size(initial_state, 1)
     state_dim::Int = size(initial_state, 2)
@@ -108,11 +109,17 @@ function Gatekeeper.simulate_closed_loop_gatekeeper(
     update_committed_callback =
         IterativeCallback(min_switch_time_gatekeeper, update_agent_committed_callback!)
 
-    saved_composites = SavedValues(Float64, CompositeTrajectory)
-    saving_callback =
-        SavingCallback((u, t, integrator) -> deepcopy(integrator.p[2]), saved_composites)
+    if collect_composites
+        saved_composites = SavedValues(Float64, CompositeTrajectory)
+        saving_callback = SavingCallback(
+            (u, t, integrator) -> deepcopy(integrator.p[2]),
+            saved_composites,
+        )
 
-    callbacks = CallbackSet(update_committed_callback, saving_callback)
+        callbacks = CallbackSet(update_committed_callback, saving_callback)
+    else
+        callbacks = CallbackSet(update_committed_callback)
+    end
 
     odesol_gatekeeper = solve(
         odeproblem,
@@ -124,7 +131,11 @@ function Gatekeeper.simulate_closed_loop_gatekeeper(
 
     @info "Simulation complete. Returning solution."
 
-    return odesol_gatekeeper, saved_composites
+    if !collect_composites
+        return odesol_gatekeeper
+    else
+        return odesol_gatekeeper, saved_composites
+    end
 end
 
 # ========== PRIVATE FUNCTIONS ==========
