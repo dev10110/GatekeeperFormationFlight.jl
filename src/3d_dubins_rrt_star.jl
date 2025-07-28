@@ -155,10 +155,10 @@ function sample_domain(P::Dubins3DRRTProblem)::SVector{5,Float64}
         # but a random y and z within the gate's bounds
         if return_vector[1] >= gate.pos[1] - 0.45 && return_vector[1] <= gate.pos[1] + 0.45
             # Sample a random y and z within the gate's bounds
-            new_y = rand((gate.pos[2]-0.125):0.01:(gate.pos[2]+0.125))
-            new_z = rand((gate.pos[3]-0.125):0.01:(gate.pos[3]+0.125))
+            new_y = rand((gate.pos[2]-0.05):0.01:(gate.pos[2]+0.05))
+            new_z = rand((gate.pos[3]-0.05):0.01:(gate.pos[3]+0.05))
 
-            yaw = clamp(return_vector[4], -π / 8, π / 8) + 0.001 * return_vector[4]# clamp to be mostly straight
+            yaw = clamp(return_vector[4], -π / 16, π / 16) + 0.001 * return_vector[4]# clamp to be mostly straight
             # yaw = clamp(return_vector[4], -7π / 8, 7π / 8) + 0.001 * return_vector[4]# clamp to be mostly straight
             return SVector{5,Float64}(
                 return_vector[1],

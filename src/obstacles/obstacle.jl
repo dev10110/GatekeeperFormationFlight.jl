@@ -230,6 +230,8 @@ end
 const FPVGateWidth::Float64 = 0.9  # Actually 0.7, padded for safety
 const FPVGateAllowedRadius::Float64 = 0.05  # Radius of the cylinder through the gate
 
+# TODO make gate width part of the struct
+
 function collision_distance(g::FPVGate, x::AbstractVector{F}, time::F) where {F<:Real}
     # first check distance to be in the plane defined by the gate
     plane_dist = abs(x[1] - g.pos[1]) - (FPVGateWidth / 2.0)
