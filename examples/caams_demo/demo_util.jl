@@ -229,7 +229,7 @@ function fit_polynomials(
             px = fit(t_chunk, x, poly_degree)
             py = fit(t_chunk, y, poly_degree)
             pz = fit(t_chunk, z, poly_degree)
-            pyaw = fit(t_chunk, yaw * 0, poly_degree)
+            pyaw = fit(t_chunk, yaw, poly_degree)
 
             # println("Px: $px, Py: $py, Pz: $pz, Pyaw: $pyaw")
 
