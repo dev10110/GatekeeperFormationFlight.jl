@@ -1,0 +1,73 @@
+agents:
+  - offset:
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+    id: 1
+  - offset:
+      - -0.5
+      - -0.3
+      - 0.0
+      - 0.0
+      - 0.0
+    id: 2
+  - offset:
+      - -0.5
+      - 0.3
+      - 0.0
+      - 0.0
+      - 0.0
+    id: 3
+scenario:
+  start_pose:
+    - -3.0
+    - 1.0
+    - 1.5
+    - 0.0
+    - 0.0
+  domain_min:
+    - -4.0
+    - -2.0
+    - 0.0
+  name: "gate_scenario_3"
+  domain_max:
+    - 2.0
+    - 2.2
+    - 3.0
+  goal_pose:
+    - 1.9
+    - 0.5
+    - 1.5
+    - 0.0
+    - 0.0
+  reconstruction_time: 20.0
+obstacles:
+  - position:
+      - 0.5
+      - 0.5
+      - 1.15
+    type: "FPVGate"
+  - position:
+      - -1.5
+      - 1.5
+      - 1.55
+    type: "FPVGate"
+agent_settings:
+  turn_radius: 0.15
+  pitch_limits:
+    - -0.7853981633974483
+    - 0.7853981633974483
+  v_min: 0.7
+  v_max: 1.0
+  x_padding: 0.2
+  y_padding: 0.0
+  agent_radius: 0.20
+gatekeeper_coefficients:
+  reconnection_step_size: 0.05
+  max_Ts_horizon: 10.0
+  integration_step_size: 0.005
+  collision_check_step_size: 0.01
+  switch_step_size: 0.05
+  integration_max_step_size: 0.02
