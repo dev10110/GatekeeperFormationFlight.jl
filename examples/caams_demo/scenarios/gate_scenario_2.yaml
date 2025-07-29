@@ -50,8 +50,8 @@ obstacles:
       - 2.15
     type: "FPVGate"
   - position:
-      - -1.00
-      - -1.0
+      - -1.70
+      - 0.3
       - 1.55
     radius: 0.55
     type: "Cylinder"
